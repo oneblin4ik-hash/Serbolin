@@ -1,0 +1,17 @@
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json
+.claude/.credentials.json
+
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+target/
+vendor/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
