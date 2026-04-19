@@ -10,6 +10,11 @@ __pycache__/
 target/
 vendor/
 
+# Build output
+dist/
+.vite/
+*.log
+
 # OS / editor
 .DS_Store
 .idea/
