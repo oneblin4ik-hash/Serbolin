@@ -1,74 +1,152 @@
-# Serbolin — Claude Code Remote Control Setup
+# Serbolin
 
-Этот репозиторий настроен для работы с **Claude Code** на всех устройствах:
-веб, десктоп (CLI), и мобильный телефон.
+**Serbolin** — персональная RPG-система трекинга жизни (Flutter Web + Supabase).
+Превращает реальные действия (тренировки, контент, финансы) в игровые механики:
+уровни, XP, достижения, квесты, босс недели.
 
-## Что настроено
+## Стек
 
-- `.claude/settings.json` — общие настройки, права доступа (permissions),
-  регистрация SessionStart-хука.
-- `.claude/hooks/session-start.sh` — скрипт, который поднимает окружение
-  (устанавливает зависимости npm / pip / poetry / cargo / go / bundler,
-  если соответствующие манифесты появятся в репозитории).
-- `.gitignore` — базовые исключения.
+- **Flutter Web** (Dart, Material 3, dark-only тема)
+- **Supabase** (PostgreSQL + Auth + RLS) — синхронизация между устройствами
+- Single-user: авторизация нужна только чтобы данные жили в облаке
 
-## Как пользоваться
+## Структура
 
-### 1. На компьютере (CLI)
-
-Установи Claude Code один раз:
-
-```bash
-npm install -g @anthropic-ai/claude-code
+```
+lib/
+├── main.dart                       # точка входа, AuthGate, MultiProvider
+├── config.dart                     # SUPABASE_URL / SUPABASE_ANON_KEY
+├── theme/app_theme.dart            # цвета + AppTheme.dark()
+├── models/                         # player_stats, quest, workout, body_stat,
+│                                   # achievement, client, boss
+├── services/                       # supabase_service, xp_service,
+│                                   # quest_service, achievement_service
+├── widgets/                        # xp_bar, streak, quest_card, avatar,
+│                                   # body_stat_bar, achievement_badge,
+│                                   # level_up_overlay, achievement_popup
+└── screens/                        # dashboard, character, training, stats,
+                                    # crm, achievements, login, shell,
+                                    # setup_required
+supabase/migrations/001_initial.sql # полная схема + RLS политики
 ```
 
-Запусти в корне репозитория:
+## Быстрый старт
+
+### 1. Установи Flutter и зависимости
 
 ```bash
-claude
+flutter --version   # нужен stable ≥ 3.19
+flutter pub get
 ```
 
-Настройки из `.claude/settings.json` подхватятся автоматически.
+### 2. Создай Supabase-проект
 
-### 2. В браузере (Claude Code on the web)
+1. Открой https://supabase.com → **New Project**.
+2. Дождись, пока база поднимется.
+3. В левом меню: **SQL Editor** → **New query** → вставь содержимое
+   `supabase/migrations/001_initial.sql` и нажми **Run**.
+4. В **Settings → API** скопируй:
+   - `Project URL`  (вида `https://xxxxxx.supabase.co`)
+   - `anon public key` (длинный JWT)
 
-Зайди на **https://claude.ai/code**, подключи этот GitHub-репозиторий.
-При старте сессии выполнится `.claude/hooks/session-start.sh`, который
-подготовит окружение.
+### 3. Создай аккаунт
 
-### 3. На телефоне (iOS / Android)
+В **Authentication → Users** нажми **Add user** → Email + password.
+(По желанию: в **Authentication → Providers → Email** отключи confirmation
+email, чтобы не подтверждать почту вручную.)
 
-**Вариант А — мобильное приложение Claude (рекомендуется):**
+### 4. Запусти веб-приложение
 
-1. Установи приложение:
-   - iOS: App Store → «Claude by Anthropic»
-     (https://apps.apple.com/app/claude-by-anthropic/id6473753684)
-   - Android: Google Play → «Claude by Anthropic»
-     (https://play.google.com/store/apps/details?id=com.anthropic.claude)
-2. Войди тем же аккаунтом Anthropic, что и на компьютере.
-3. В приложении открой раздел **Claude Code** → **Connect GitHub** и выбери
-   репозиторий `oneblin4ik-hash/Serbolin` (после мёржа этого PR в `main`).
-4. Нажми **New session** — SessionStart-хук из этого репо подхватится
-   автоматически, как и на десктопе/вебе.
+```bash
+flutter run -d chrome \
+  --dart-define=SUPABASE_URL=https://xxxxxx.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=eyJhbGciOi...
+```
 
-**Вариант Б — мобильный браузер:**
+Если ключи не переданы, приложение покажет экран **SETUP REQUIRED**
+с этими же инструкциями.
 
-Открой на телефоне **https://claude.ai/code**, подключи тот же репозиторий —
-это та же веб-сессия, те же настройки, тот же хук. Можно добавить страницу
-на главный экран («Добавить на экран «Домой»»), чтобы был иконка-ярлык.
+### 5. Билд для продакшена
 
-**Синхронизация между устройствами:**
+```bash
+flutter build web --release \
+  --dart-define=SUPABASE_URL=... \
+  --dart-define=SUPABASE_ANON_KEY=...
+```
 
-Сессии привязаны к аккаунту Anthropic, поэтому то, что ты начал на
-компьютере, видно и на телефоне, и наоборот. Настройки из
-`.claude/settings.json` едины для всех трёх каналов — менять их нужно
-только в репозитории.
+Содержимое `build/web/` можно раскатить на любой статический хостинг
+(Netlify, Cloudflare Pages, GitHub Pages, Vercel, Supabase Storage).
 
-## Добавление новых возможностей
+## Тема и визуал
 
-- Чтобы добавить автоматические действия (`on save`, `on stop`, и т.д.) —
-  правь секцию `hooks` в `.claude/settings.json`.
-- Чтобы расширить права без подтверждения — добавляй паттерны в
-  `permissions.allow`.
-- Локальные (приватные) настройки положи в `.claude/settings.local.json` —
-  он уже в `.gitignore`.
+| Color         | Hex       | Usage                              |
+|---------------|-----------|-------------------------------------|
+| Background    | `#0D0D0D` | основной фон (дисциплина)          |
+| Surface       | `#1E1E1E` | карточки, диалоги                  |
+| Accent Gold   | `#C9A84C` | достижения, XP, акценты            |
+| Accent Red    | `#8B1A1A` | опасность, расходы, легенды        |
+| Text          | `#F0F0F0` | основной текст                     |
+| Subtext       | `#888888` | второстепенный                     |
+
+Шрифт: **Rajdhani** через `google_fonts` (русская кириллица поддерживается).
+
+## Что уже работает
+
+- 🏠 **Dashboard** — уровень/ранг, анимированный XP-бар, streak с пульсом огня,
+  дневные квесты (авто-генерация 2 штук + кастомные), босс недели, 4 ветки
+  развития → переход в нужную вкладку Stats.
+- 🧍 **Character** — аватар-силуэт (3 стадии по уровню), body stats с
+  прогресс-барами к целям, 4 атрибута героя. Level-up overlay с confetti.
+- 🏋 **Training** — месячный календарь с отметками, полноэкранная форма
+  логирования (дата, группы мышц чипами, динамический список упражнений,
+  заметки, слайдер восстановления). Автоматический XP + бонус за PR.
+- 📊 **Stats** — 4 вкладки с `fl_chart`: XP-линия 30 дней + heatmap,
+  график веса и замеров, контент (ручной ввод + график подписчиков),
+  финансы (3 карточки + бар по месяцам).
+- 💼 **CRM** — 4 вкладки: клиенты (поиск), лиды (со статусом-цветом и
+  конвертацией в клиенты), финансы (доход/расход/баланс + группировка
+  по дням), задачи с опциональным XP за выполнение.
+- 🏆 **Achievements** — сетка бейджей: 10 ачивок + pop-up с confetti и
+  анимацией при разблокировке. XP начисляется автоматически.
+- 🎁 **Streak-бонусы** (×1.10 / ×1.20 / ×1.40 / ×1.80) и 10% шанс
+  случайного `+100 XP` применяются ко всему.
+- 🔐 **Auth Gate** с email-паролем, Supabase сессия живёт в IndexedDB.
+- 🛡 **RLS** — на всех таблицах политики `auth.uid() = user_id`.
+
+## XP-экономика (дефолты)
+
+```
+Действие                   XP
+─────────────────────────────
+Тренировка                 50
+Личный рекорд             150
+Новый клиент              100
+Диалог с клиентом          25
+Финансовая операция        15
+Reel / публикация          40
+Авто-квест (easy/mid/hard) 30 / 50 / 80
++1 кг веса                100
++1 см бицепс              120
++2 см грудь               150
++2 см бедро               150
+```
+
+Уровни: `500 · 1000 · 2000 · 3000 · 4500 · 6000 · 8000 · 10000 · 15000`.
+Ранги:
+`Novice` (1-2) → `Warrior` (3-4) → `Champion` (5-6) →
+`Architect of Discipline` (7-8) → `Legend` (9-10).
+
+## Дальнейшие улучшения
+
+- Реальные PNG-ассеты аватара (`assets/avatar/level_{1,2,3}.png`).
+  Сейчас вместо них — сгенерированный силуэт, меняющий пропорции с уровнем.
+- Звук разблокировки ачивки (положи файл в `assets/audio/`
+  и подключи `audioplayers`).
+- Web-push для ежедневного напоминания (через Service Worker).
+
+---
+
+## Claude Code on the web / mobile
+
+Этот репозиторий также настроен для работы с **Claude Code** (CLI, web,
+mobile). Всё в `.claude/`: `settings.json`, `hooks/session-start.sh`.
