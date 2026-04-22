@@ -23,7 +23,7 @@ jobs:
 
       - run: flutter pub get
 
-      - run: flutter build web --release --base-href=/serbolin/
+      - run: flutter build web --release --base-href=/Serbolin/
 
       - name: Deploy to gh-pages branch
         uses: JamesIves/github-pages-deploy-action@v4
