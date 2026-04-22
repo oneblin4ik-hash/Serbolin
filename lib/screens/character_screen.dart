@@ -138,7 +138,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('CHARACTER')),
+      appBar: AppBar(title: const Text('ПЕРСОНАЖ')),
       body: SafeArea(
         child: Consumer<XPService>(
           builder: (context, xp, _) {
@@ -154,7 +154,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
                         AvatarView(level: stats.level, glowing: _glowing),
                         const SizedBox(height: 12),
                         Text(
-                          'LEVEL ${stats.level}',
+                          'УРОВЕНЬ ${stats.level}',
                           style: AppTheme.hero.copyWith(fontSize: 32),
                         ),
                         Text(
@@ -167,7 +167,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
                 ),
                 const SizedBox(height: 16),
                 SectionCard(
-                  title: 'Body Stats',
+                  title: 'Параметры тела',
                   subtitle: _latest == null
                       ? 'Ещё нет замеров'
                       : 'Последний замер: ${_formatDate(_latest!.date)}',

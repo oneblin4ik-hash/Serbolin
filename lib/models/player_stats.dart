@@ -54,11 +54,11 @@ class PlayerStats {
   }
 
   String get rank {
-    if (level <= 2) return 'Novice';
-    if (level <= 4) return 'Warrior';
-    if (level <= 6) return 'Champion';
-    if (level <= 8) return 'Architect of Discipline';
-    return 'Legend';
+    if (level <= 2) return 'Новичок';
+    if (level <= 4) return 'Воин';
+    if (level <= 6) return 'Чемпион';
+    if (level <= 8) return 'Архитектор дисциплины';
+    return 'Легенда';
   }
 
   String get avatarAsset {

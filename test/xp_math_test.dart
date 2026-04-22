@@ -4,16 +4,16 @@ import 'package:serbolin/models/player_stats.dart';
 void main() {
   group('PlayerStats', () {
     test('rank mapping matches spec', () {
-      expect(const PlayerStats(level: 1).rank, 'Novice');
-      expect(const PlayerStats(level: 2).rank, 'Novice');
-      expect(const PlayerStats(level: 3).rank, 'Warrior');
-      expect(const PlayerStats(level: 4).rank, 'Warrior');
-      expect(const PlayerStats(level: 5).rank, 'Champion');
-      expect(const PlayerStats(level: 6).rank, 'Champion');
-      expect(const PlayerStats(level: 7).rank, 'Architect of Discipline');
-      expect(const PlayerStats(level: 8).rank, 'Architect of Discipline');
-      expect(const PlayerStats(level: 9).rank, 'Legend');
-      expect(const PlayerStats(level: 10).rank, 'Legend');
+      expect(const PlayerStats(level: 1).rank, 'Новичок');
+      expect(const PlayerStats(level: 2).rank, 'Новичок');
+      expect(const PlayerStats(level: 3).rank, 'Воин');
+      expect(const PlayerStats(level: 4).rank, 'Воин');
+      expect(const PlayerStats(level: 5).rank, 'Чемпион');
+      expect(const PlayerStats(level: 6).rank, 'Чемпион');
+      expect(const PlayerStats(level: 7).rank, 'Архитектор дисциплины');
+      expect(const PlayerStats(level: 8).rank, 'Архитектор дисциплины');
+      expect(const PlayerStats(level: 9).rank, 'Легенда');
+      expect(const PlayerStats(level: 10).rank, 'Легенда');
     });
 
     test('xpToNextLevel matches xpForLevel table', () {

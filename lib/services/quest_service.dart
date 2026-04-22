@@ -171,6 +171,20 @@ class QuestService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<Quest> updateCustomQuest(
+    Quest quest, {
+    required String title,
+    required int xp,
+  }) async {
+    final updated = quest.copyWith(title: title, xpReward: xp);
+    final saved = await _supabase.updateQuest(updated);
+    _todayQuests = _todayQuests
+        .map((q) => q.id == saved.id ? saved : q)
+        .toList(growable: false);
+    notifyListeners();
+    return saved;
+  }
+
   // ==========================================================================
   // BOSS
   // ==========================================================================

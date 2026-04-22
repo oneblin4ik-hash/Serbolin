@@ -95,12 +95,12 @@ class _LevelUpDialogState extends State<_LevelUpDialog>
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'LEVEL UP',
+                      'НОВЫЙ УРОВЕНЬ',
                       style: AppTheme.hero.copyWith(fontSize: 36),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Level ${widget.level}',
+                      'Уровень ${widget.level}',
                       style: const TextStyle(
                         fontSize: 22,
                         color: AppColors.text,

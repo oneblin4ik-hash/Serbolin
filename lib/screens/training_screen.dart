@@ -122,7 +122,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('TRAINING')),
+      appBar: AppBar(title: const Text('ТРЕНИРОВКИ')),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.gold,
         foregroundColor: AppColors.background,

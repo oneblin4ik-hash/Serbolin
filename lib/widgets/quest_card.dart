@@ -6,12 +6,14 @@ import '../theme/app_theme.dart';
 class QuestCard extends StatelessWidget {
   final Quest quest;
   final ValueChanged<bool> onToggle;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   const QuestCard({
     super.key,
     required this.quest,
     required this.onToggle,
+    this.onEdit,
     this.onDelete,
   });
 
@@ -100,11 +102,21 @@ class QuestCard extends StatelessWidget {
               ),
             ),
           ),
+          if (onEdit != null && quest.isCustom && !done)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined,
+                  size: 18, color: AppColors.gold),
+              onPressed: onEdit,
+              tooltip: 'Редактировать',
+              visualDensity: VisualDensity.compact,
+            ),
           if (onDelete != null && quest.isCustom)
             IconButton(
-              icon: const Icon(Icons.close, size: 18, color: AppColors.subtext),
+              icon: const Icon(Icons.close,
+                  size: 18, color: AppColors.subtext),
               onPressed: onDelete,
               tooltip: 'Удалить',
+              visualDensity: VisualDensity.compact,
             ),
         ],
       ),

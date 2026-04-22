@@ -12,7 +12,7 @@ class AchievementsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('ACHIEVEMENTS')),
+      appBar: AppBar(title: const Text('ДОСТИЖЕНИЯ')),
       body: SafeArea(
         child: Consumer<AchievementService>(
           builder: (context, svc, _) {

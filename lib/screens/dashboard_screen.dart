@@ -21,15 +21,8 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('DASHBOARD'),
+        title: const Text('ДОМ'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.military_tech_outlined),
-            tooltip: 'Достижения',
-            onPressed: () {
-              Navigator.of(context).pushNamed('/achievements');
-            },
-          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Выйти',
@@ -37,31 +30,29 @@ class DashboardScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          color: AppColors.gold,
-          onRefresh: () async {
-            await context.read<XPService>().refresh();
-            await context.read<QuestService>().refresh();
-            await context.read<AchievementService>().load();
-          },
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: const [
-              _LevelBlock(),
-              SizedBox(height: 16),
-              _XpBlock(),
-              SizedBox(height: 16),
-              _StreakBlock(),
-              SizedBox(height: 16),
-              _BossBlock(),
-              SizedBox(height: 16),
-              _QuestsBlock(),
-              SizedBox(height: 16),
-              _BranchesBlock(),
-              SizedBox(height: 32),
-            ],
-          ),
+      body: RefreshIndicator(
+        color: AppColors.gold,
+        onRefresh: () async {
+          await context.read<XPService>().refresh();
+          await context.read<QuestService>().refresh();
+          await context.read<AchievementService>().load();
+        },
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: const [
+            _LevelBlock(),
+            SizedBox(height: 16),
+            _XpBlock(),
+            SizedBox(height: 16),
+            _StreakBlock(),
+            SizedBox(height: 16),
+            _BossBlock(),
+            SizedBox(height: 16),
+            _QuestsBlock(),
+            SizedBox(height: 16),
+            _BranchesBlock(),
+            SizedBox(height: 32),
+          ],
         ),
       ),
     );
@@ -109,8 +100,8 @@ class _LevelBlock extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'LEVEL ${stats.level}',
-                        style: AppTheme.hero.copyWith(fontSize: 44),
+                        'УРОВЕНЬ ${stats.level}',
+                        style: AppTheme.hero.copyWith(fontSize: 40),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -123,7 +114,7 @@ class _LevelBlock extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Total XP: ${stats.xpTotal}',
+                        'Всего XP: ${stats.xpTotal}',
                         style: AppTheme.subtitle,
                       ),
                     ],
@@ -184,7 +175,8 @@ class _StreakBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<XPService>(
-      builder: (context, xp, _) => StreakWidget(streakDays: xp.stats.streakDays),
+      builder: (context, xp, _) =>
+          StreakWidget(streakDays: xp.stats.streakDays),
     );
   }
 }
@@ -269,6 +261,9 @@ class _QuestsBlock extends StatelessWidget {
               ...list.map((q) => QuestCard(
                     quest: q,
                     onToggle: (done) => _toggle(context, q, done),
+                    onEdit: q.isCustom
+                        ? () => _showEditDialog(context, q)
+                        : null,
                     onDelete: () => quests.deleteQuest(q),
                   )),
               const SizedBox(height: 8),
@@ -304,12 +299,44 @@ class _QuestsBlock extends StatelessWidget {
   }
 
   Future<void> _showAddDialog(BuildContext context) async {
-    final titleCtrl = TextEditingController();
-    final xpCtrl = TextEditingController(text: '30');
-    final result = await showDialog<bool>(
+    final result = await _showQuestDialog(
+      context: context,
+      titleText: 'Новый квест',
+      submitText: 'ДОБАВИТЬ',
+    );
+    if (result == null) return;
+    await context
+        .read<QuestService>()
+        .addCustomQuest(title: result.$1, xp: result.$2);
+  }
+
+  Future<void> _showEditDialog(BuildContext context, Quest quest) async {
+    final result = await _showQuestDialog(
+      context: context,
+      titleText: 'Редактировать квест',
+      submitText: 'СОХРАНИТЬ',
+      initialTitle: quest.title,
+      initialXp: quest.xpReward,
+    );
+    if (result == null) return;
+    await context
+        .read<QuestService>()
+        .updateCustomQuest(quest, title: result.$1, xp: result.$2);
+  }
+
+  Future<(String, int)?> _showQuestDialog({
+    required BuildContext context,
+    required String titleText,
+    required String submitText,
+    String? initialTitle,
+    int? initialXp,
+  }) async {
+    final titleCtrl = TextEditingController(text: initialTitle ?? '');
+    final xpCtrl = TextEditingController(text: (initialXp ?? 30).toString());
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Новый квест'),
+        title: Text(titleText),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -321,7 +348,8 @@ class _QuestsBlock extends StatelessWidget {
             const SizedBox(height: 12),
             TextField(
               controller: xpCtrl,
-              decoration: const InputDecoration(labelText: 'XP за выполнение'),
+              decoration:
+                  const InputDecoration(labelText: 'XP за выполнение'),
               keyboardType: TextInputType.number,
             ),
           ],
@@ -333,19 +361,16 @@ class _QuestsBlock extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('ДОБАВИТЬ'),
+            child: Text(submitText),
           ),
         ],
       ),
     );
-    if (result == true) {
-      final title = titleCtrl.text.trim();
-      final xp = int.tryParse(xpCtrl.text.trim()) ?? 30;
-      if (title.isEmpty) return;
-      await context
-          .read<QuestService>()
-          .addCustomQuest(title: title, xp: xp);
-    }
+    if (confirmed != true) return null;
+    final title = titleCtrl.text.trim();
+    final xp = int.tryParse(xpCtrl.text.trim()) ?? 30;
+    if (title.isEmpty) return null;
+    return (title, xp);
   }
 }
 
@@ -366,22 +391,22 @@ class _BranchesBlock extends StatelessWidget {
         children: [
           _BranchTile(
             emoji: '💪',
-            label: 'BODY',
+            label: 'ТЕЛО',
             onTap: () => _openStats(context, StatsTab.body),
           ),
           _BranchTile(
             emoji: '📈',
-            label: 'BRAND',
+            label: 'БРЕНД',
             onTap: () => _openStats(context, StatsTab.content),
           ),
           _BranchTile(
             emoji: '💰',
-            label: 'WEALTH',
+            label: 'БОГАТСТВО',
             onTap: () => _openStats(context, StatsTab.finance),
           ),
           _BranchTile(
             emoji: '🧠',
-            label: 'CREATION',
+            label: 'ТВОРЕНИЕ',
             onTap: () => _openStats(context, StatsTab.general),
           ),
         ],
@@ -422,12 +447,15 @@ class _BranchTile extends StatelessWidget {
           children: [
             Text(emoji, style: const TextStyle(fontSize: 26)),
             const SizedBox(width: 10),
-            Text(
-              label,
-              style: const TextStyle(
-                color: AppColors.gold,
-                letterSpacing: 2,
-                fontWeight: FontWeight.w800,
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.gold,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.w800,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

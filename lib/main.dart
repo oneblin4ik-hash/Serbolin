@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config.dart';
-import 'screens/achievements_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/setup_required_screen.dart';
 import 'screens/shell_screen.dart';
@@ -44,9 +43,6 @@ class SerbolinApp extends StatelessWidget {
       title: 'Serbolin',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark(),
-      routes: {
-        '/achievements': (_) => const AchievementsScreen(),
-      },
       home: const AuthGate(),
     );
   }

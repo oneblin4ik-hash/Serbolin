@@ -95,7 +95,7 @@ class _AchievementDialogState extends State<_AchievementDialog>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'ACHIEVEMENT UNLOCKED',
+                      'НОВОЕ ДОСТИЖЕНИЕ',
                       style: TextStyle(
                         color: widget.def.isLegendary
                             ? AppColors.red

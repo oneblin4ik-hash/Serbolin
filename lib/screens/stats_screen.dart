@@ -1,9 +1,14 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
+import '../services/achievement_service.dart';
+import '../services/quest_service.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/content_ideas.dart';
 import 'shell_screen.dart';
 
 enum StatsTab { general, body, content, finance }
@@ -52,7 +57,7 @@ class _StatsScreenState extends State<StatsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('STATS'),
+        title: const Text('СТАТИСТИКА'),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -199,7 +204,7 @@ class _GeneralTabState extends State<_GeneralTab> {
         ),
         const SizedBox(height: 16),
         SectionCard(
-          title: 'Streak heatmap (30 дней)',
+          title: 'Тепловая карта активности (30 дней)',
           child: _Heatmap(entries: _xpByDay),
         ),
         const SizedBox(height: 16),
@@ -521,6 +526,26 @@ class _ContentTabState extends State<_ContentTab> {
     _posts.clear();
     _subs.clear();
     await _load();
+
+    // Ачивка «Контент-машина» при достижении 100 публикаций суммарно.
+    if (!mounted) return;
+    final totalPubs = _stats.fold<int>(0, (acc, row) {
+      final r = (row['reels'] as num?)?.toInt() ?? 0;
+      final p = (row['posts'] as num?)?.toInt() ?? 0;
+      return acc + r + p;
+    });
+    await context.read<AchievementService>().checkContent(totalPubs);
+  }
+
+  int get _totalReels =>
+      _stats.fold<int>(0, (a, r) => a + ((r['reels'] as num?)?.toInt() ?? 0));
+
+  int get _totalPosts =>
+      _stats.fold<int>(0, (a, r) => a + ((r['posts'] as num?)?.toInt() ?? 0));
+
+  int get _latestSubs {
+    if (_stats.isEmpty) return 0;
+    return (_stats.last['subscribers'] as num?)?.toInt() ?? 0;
   }
 
   @override
@@ -538,32 +563,73 @@ class _ContentTabState extends State<_ContentTab> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        Row(
+          children: [
+            Expanded(child: _countCard('📹 REELS', _totalReels)),
+            const SizedBox(width: 8),
+            Expanded(child: _countCard('📝 ПОСТЫ', _totalPosts)),
+            const SizedBox(width: 8),
+            Expanded(child: _countCard('👥 ПОДПИСЧИКИ', _latestSubs)),
+          ],
+        ),
+        const SizedBox(height: 16),
         SectionCard(
-          title: 'Контент — месяц',
-          subtitle: 'Обновить значения за текущий месяц',
+          title: 'Контент — текущий месяц',
+          subtitle: 'Обновить значения за ${DateFormat.MMMM('ru').format(DateTime.now())}',
           child: Column(
             children: [
               TextField(
                 controller: _reels,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Reels'),
+                decoration: const InputDecoration(
+                  labelText: 'Reels Instagram',
+                  prefixIcon: Icon(Icons.video_camera_back_outlined,
+                      color: AppColors.gold),
+                ),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: _posts,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Посты'),
+                decoration: const InputDecoration(
+                  labelText: 'Посты Telegram',
+                  prefixIcon: Icon(Icons.telegram, color: AppColors.gold),
+                ),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: _subs,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Подписчики'),
+                decoration: const InputDecoration(
+                  labelText: 'Подписчики (суммарно)',
+                  prefixIcon: Icon(Icons.group_outlined,
+                      color: AppColors.gold),
+                ),
               ),
               const SizedBox(height: 14),
               ElevatedButton(
                 onPressed: _save,
                 child: const Text('СОХРАНИТЬ'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        SectionCard(
+          title: '💡 Генератор идей',
+          subtitle: 'Темы постов Telegram и сценарии Reels Instagram',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              OutlinedButton.icon(
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('ОТКРЫТЬ ГЕНЕРАТОР'),
+                onPressed: () => _openIdeaGenerator(context),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Нажми — получишь свежую идею для Reel или поста. Можно сохранить как квест на сегодня.',
+                style: TextStyle(color: AppColors.subtext, fontSize: 12),
               ),
             ],
           ),
@@ -621,6 +687,307 @@ class _ContentTabState extends State<_ContentTab> {
                   ),
           ),
         ),
+      ],
+    );
+  }
+
+  void _openIdeaGenerator(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => const IdeaGeneratorDialog(),
+    );
+  }
+
+  Widget _countCard(String label, int value) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.subtext,
+                letterSpacing: 1.5,
+                fontSize: 10,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              NumberFormat.decimalPattern('ru').format(value),
+              style: const TextStyle(
+                color: AppColors.gold,
+                fontWeight: FontWeight.w800,
+                fontSize: 20,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// IDEA GENERATOR DIALOG
+// ============================================================================
+
+class IdeaGeneratorDialog extends StatefulWidget {
+  const IdeaGeneratorDialog({super.key});
+
+  @override
+  State<IdeaGeneratorDialog> createState() => _IdeaGeneratorDialogState();
+}
+
+class _IdeaGeneratorDialogState extends State<IdeaGeneratorDialog>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs;
+  ContentIdea? _current;
+  bool _isReel = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 2, vsync: this);
+    _tabs.addListener(_onTab);
+    _generate();
+  }
+
+  void _onTab() {
+    if (!_tabs.indexIsChanging && _tabs.previousIndex != _tabs.index) {
+      _generate();
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabs.removeListener(_onTab);
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  void _generate() {
+    setState(() {
+      _isReel = _tabs.index == 1;
+      _current = _isReel
+          ? ContentIdeas.randomReel()
+          : ContentIdeas.randomTelegramPost();
+    });
+  }
+
+  Future<void> _copyToClipboard() async {
+    if (_current == null) return;
+    await Clipboard.setData(ClipboardData(text: _current!.fullText));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Скопировано в буфер обмена'),
+        backgroundColor: AppColors.surfaceElevated,
+      ),
+    );
+  }
+
+  Future<void> _saveAsQuest() async {
+    if (_current == null) return;
+    final prefix = _isReel ? 'Снять Reel: ' : 'Написать пост: ';
+    final xp = _isReel ? 60 : 40;
+    await context.read<QuestService>().addCustomQuest(
+          title: '$prefix${_current!.title}',
+          xp: xp,
+        );
+    if (!mounted) return;
+    Navigator.of(context).pop();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Квест добавлен: +$xp XP за выполнение'),
+        backgroundColor: AppColors.surfaceElevated,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 48),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 12, 0),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'ГЕНЕРАТОР ИДЕЙ',
+                      style: TextStyle(
+                        color: AppColors.gold,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 3,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppColors.subtext),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            TabBar(
+              controller: _tabs,
+              tabs: const [
+                Tab(text: 'TELEGRAM ПОСТ'),
+                Tab(text: 'INSTAGRAM REEL'),
+              ],
+            ),
+            const Divider(height: 1, color: AppColors.divider),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: _current == null
+                  ? const SizedBox(height: 120)
+                  : _IdeaCard(idea: _current!, isReel: _isReel),
+            ),
+            const Divider(height: 1, color: AppColors.divider),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _generate,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('СЛЕДУЮЩАЯ ИДЕЯ'),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _copyToClipboard,
+                          icon: const Icon(Icons.copy_outlined),
+                          label: const Text('КОПИРОВАТЬ'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _saveAsQuest,
+                          icon: const Icon(Icons.flag_outlined),
+                          label: const Text('В КВЕСТ'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _IdeaCard extends StatelessWidget {
+  final ContentIdea idea;
+  final bool isReel;
+  const _IdeaCard({required this.idea, required this.isReel});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(isReel ? '🎬' : '✍️',
+                style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                idea.title,
+                style: const TextStyle(
+                  color: AppColors.text,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.divider),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: idea.structure
+                .map(
+                  (part) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: RichText(
+                      text: TextSpan(
+                        style: const TextStyle(
+                          color: AppColors.text,
+                          fontSize: 13,
+                          height: 1.5,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: '${part.$1}: ',
+                            style: const TextStyle(
+                              color: AppColors.gold,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          TextSpan(text: part.$2),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+        if (idea.tags.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: idea.tags
+                .map((t) => Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                            color: AppColors.gold.withOpacity(0.4)),
+                      ),
+                      child: Text(
+                        '#$t',
+                        style: const TextStyle(
+                          color: AppColors.gold,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
+        ],
       ],
     );
   }

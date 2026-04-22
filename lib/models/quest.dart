@@ -34,15 +34,15 @@ extension QuestBranchExt on QuestBranch {
   String get label {
     switch (this) {
       case QuestBranch.body:
-        return 'BODY';
+        return 'ТЕЛО';
       case QuestBranch.brand:
-        return 'BRAND';
+        return 'БРЕНД';
       case QuestBranch.wealth:
-        return 'WEALTH';
+        return 'БОГАТСТВО';
       case QuestBranch.creation:
-        return 'CREATION';
+        return 'ТВОРЕНИЕ';
       case QuestBranch.custom:
-        return 'CUSTOM';
+        return 'ЛИЧНОЕ';
     }
   }
 
@@ -87,6 +87,8 @@ class Quest {
 
   Quest copyWith({
     String? id,
+    String? title,
+    int? xpReward,
     bool? isCompleted,
     DateTime? completedAt,
   }) =>
@@ -94,8 +96,8 @@ class Quest {
         id: id ?? this.id,
         userId: userId,
         date: date,
-        title: title,
-        xpReward: xpReward,
+        title: title ?? this.title,
+        xpReward: xpReward ?? this.xpReward,
         branch: branch,
         isCustom: isCustom,
         isCompleted: isCompleted ?? this.isCompleted,
