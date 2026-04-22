@@ -55,6 +55,12 @@
     <div class="title">SERBOLIN</div>
     <div class="sub">LOADING SYSTEM…</div>
   </div>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var el = document.getElementById('loading');
+      if (el) el.remove();
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
