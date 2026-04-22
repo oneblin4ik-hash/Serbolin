@@ -13,6 +13,7 @@ import 'achievements_screen.dart';
 import 'character_screen.dart';
 import 'crm_screen.dart';
 import 'dashboard_screen.dart';
+import 'quests_screen.dart';
 import 'stats_screen.dart';
 import 'training_screen.dart';
 
@@ -62,6 +63,7 @@ class _ShellScreenState extends State<ShellScreen> {
 
   static const List<Widget> _pages = [
     DashboardScreen(),
+    QuestsScreen(),
     CharacterScreen(),
     TrainingScreen(),
     StatsScreen(),
@@ -74,6 +76,11 @@ class _ShellScreenState extends State<ShellScreen> {
       icon: Icons.home_outlined,
       activeIcon: Icons.home,
       label: 'Дом',
+    ),
+    _NavEntry(
+      icon: Icons.flag_outlined,
+      activeIcon: Icons.flag,
+      label: 'Квесты',
     ),
     _NavEntry(
       icon: Icons.person_outline,

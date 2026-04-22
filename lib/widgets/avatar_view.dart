@@ -53,6 +53,8 @@ class AvatarView extends StatelessWidget {
 
           // Круглый каркас с градиентом
           Container(
+            width: size,
+            height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(
@@ -68,6 +70,7 @@ class AvatarView extends StatelessWidget {
             ),
             padding: const EdgeInsets.all(10),
             child: CustomPaint(
+              size: Size(size - 20, size - 20),
               painter: _HeroPainter(level: level, stage: stage),
             ),
           ),

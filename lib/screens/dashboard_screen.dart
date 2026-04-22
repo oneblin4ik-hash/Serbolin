@@ -2,13 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../models/quest.dart';
 import '../services/achievement_service.dart';
 import '../services/quest_service.dart';
-import '../services/supabase_service.dart';
 import '../services/xp_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/quest_card.dart';
 import '../widgets/streak_widget.dart';
 import '../widgets/xp_bar.dart';
 import 'shell_screen.dart';
@@ -40,16 +37,16 @@ class DashboardScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: const [
-            _LevelBlock(),
-            SizedBox(height: 16),
+            _HeroBlock(),
+            SizedBox(height: 14),
+            _StatsRow(),
+            SizedBox(height: 14),
             _XpBlock(),
-            SizedBox(height: 16),
+            SizedBox(height: 14),
             _StreakBlock(),
-            SizedBox(height: 16),
-            _BossBlock(),
-            SizedBox(height: 16),
-            _QuestsBlock(),
-            SizedBox(height: 16),
+            SizedBox(height: 14),
+            _QuestsSummaryRow(),
+            SizedBox(height: 14),
             _BranchesBlock(),
             SizedBox(height: 32),
           ],
@@ -82,67 +79,201 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-class _LevelBlock extends StatelessWidget {
-  const _LevelBlock();
+class _HeroBlock extends StatelessWidget {
+  const _HeroBlock();
 
   @override
   Widget build(BuildContext context) {
     return Consumer<XPService>(
       builder: (context, xp, _) {
         final stats = xp.stats;
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'УРОВЕНЬ ${stats.level}',
-                        style: AppTheme.hero.copyWith(fontSize: 40),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        stats.rank.toUpperCase(),
-                        style: const TextStyle(
-                          color: AppColors.gold,
-                          letterSpacing: 3,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Всего XP: ${stats.xpTotal}',
-                        style: AppTheme.subtitle,
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  width: 64,
-                  height: 64,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.gold, width: 2),
-                  ),
-                  child: Text(
-                    '${stats.level}',
-                    style: const TextStyle(
-                      color: AppColors.gold,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 28,
-                    ),
-                  ),
-                ),
-              ],
+        return Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            gradient: AppColors.heroGradient,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: AppColors.gold.withOpacity(0.5),
+              width: 1.5,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.gold.withOpacity(0.1),
+                blurRadius: 40,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'УРОВЕНЬ ${stats.level}',
+                      style: AppTheme.hero.copyWith(fontSize: 44),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            gradient: AppColors.goldGradient,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            stats.rank.toUpperCase(),
+                            style: const TextStyle(
+                              color: AppColors.background,
+                              letterSpacing: 2,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Всего набрано: ${stats.xpTotal} XP',
+                      style: AppTheme.subtitle,
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 80,
+                height: 80,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: AppColors.goldGradient,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.gold.withOpacity(0.4),
+                      blurRadius: 24,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Text(
+                  '${stats.level}',
+                  style: const TextStyle(
+                    color: AppColors.background,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 36,
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },
+    );
+  }
+}
+
+class _StatsRow extends StatelessWidget {
+  const _StatsRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<XPService>(
+      builder: (context, xp, _) {
+        final s = xp.stats;
+        return Row(
+          children: [
+            Expanded(
+              child: _MiniStat(
+                emoji: '⚔️',
+                label: 'СИЛА',
+                value: s.strength,
+                color: AppColors.red,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _MiniStat(
+                emoji: '🏃',
+                label: 'ВЫНОСЛ.',
+                value: s.endurance,
+                color: AppColors.emerald,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _MiniStat(
+                emoji: '🎯',
+                label: 'ДИСЦИПЛ.',
+                value: s.discipline,
+                color: AppColors.gold,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _MiniStat(
+                emoji: '⚡',
+                label: 'ЭНЕРГИЯ',
+                value: s.energy,
+                color: AppColors.cyan,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  final String emoji;
+  final String label;
+  final int value;
+  final Color color;
+
+  const _MiniStat({
+    required this.emoji,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.5)),
+      ),
+      child: Column(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 20)),
+          const SizedBox(height: 4),
+          Text(
+            '$value',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.subtext,
+              fontSize: 9,
+              letterSpacing: 1,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -181,196 +312,128 @@ class _StreakBlock extends StatelessWidget {
   }
 }
 
-class _BossBlock extends StatelessWidget {
-  const _BossBlock();
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<QuestService>(
-      builder: (context, quests, _) {
-        final boss = quests.currentBoss;
-        if (boss == null) return const SizedBox.shrink();
-        final progress = quests.bossProgressPercent(boss);
-        return SectionCard(
-          title: '👹 Босс недели',
-          subtitle: boss.isCompleted ? 'ПОБЕЖДЁН' : 'В процессе',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                boss.title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  color: AppColors.text,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(boss.description, style: AppTheme.subtitle),
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 10,
-                  backgroundColor: const Color(0xFF1A1A1A),
-                  valueColor: AlwaysStoppedAnimation(
-                    boss.isCompleted ? AppColors.gold : AppColors.red,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Награда: +${boss.xpReward} XP',
-                    style: const TextStyle(color: AppColors.gold),
-                  ),
-                  Text(
-                    '${(progress * 100).toStringAsFixed(0)}%',
-                    style: AppTheme.subtitle,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _QuestsBlock extends StatelessWidget {
-  const _QuestsBlock();
+class _QuestsSummaryRow extends StatelessWidget {
+  const _QuestsSummaryRow();
 
   @override
   Widget build(BuildContext context) {
     return Consumer<QuestService>(
       builder: (context, quests, _) {
         final list = quests.todayQuests;
-        return SectionCard(
-          title: '⚔️ Квесты дня',
-          subtitle: list.isEmpty
-              ? 'Пока нет квестов'
-              : '${list.where((q) => q.isCompleted).length}/${list.length} выполнено',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ...list.map((q) => QuestCard(
-                    quest: q,
-                    onToggle: (done) => _toggle(context, q, done),
-                    onEdit: q.isCustom
-                        ? () => _showEditDialog(context, q)
-                        : null,
-                    onDelete: () => quests.deleteQuest(q),
-                  )),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text('ДОБАВИТЬ СВОЙ КВЕСТ'),
-                onPressed: () => _showAddDialog(context),
+        final done = list.where((q) => q.isCompleted).length;
+        final boss = quests.currentBoss;
+        final bossProgress =
+            boss == null ? 0.0 : quests.bossProgressPercent(boss);
+        return Row(
+          children: [
+            Expanded(
+              child: _SummaryCard(
+                emoji: '⚔️',
+                title: 'КВЕСТЫ ДНЯ',
+                subtitle: list.isEmpty
+                    ? 'Пока нет'
+                    : '$done из ${list.length} готово',
+                progress: list.isEmpty ? 0 : done / list.length,
+                color: AppColors.gold,
+                onTap: () => RootNav.goToTab(context, 1),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _SummaryCard(
+                emoji: '👹',
+                title: 'БОСС НЕДЕЛИ',
+                subtitle: boss == null
+                    ? 'Не назначен'
+                    : boss.isCompleted
+                        ? 'Побеждён'
+                        : boss.title,
+                progress: bossProgress,
+                color: AppColors.red,
+                onTap: () => RootNav.goToTab(context, 1),
+              ),
+            ),
+          ],
         );
       },
     );
   }
+}
 
-  Future<void> _toggle(BuildContext context, Quest q, bool done) async {
-    final quests = context.read<QuestService>();
-    final xp = context.read<XPService>();
-    final ach = context.read<AchievementService>();
-    final wasDone = q.isCompleted;
-    final updated = await quests.toggleQuest(q, done);
-    if (done && !wasDone) {
-      await xp.addXP(
-        amount: updated.xpReward,
-        source: 'quest',
-        description: updated.title,
-      );
-      final since = DateTime.now().subtract(const Duration(days: 7));
-      final completed =
-          await SupabaseService.instance.getCompletedQuestsSince(since);
-      await ach.checkPerfectWeek(completedLast7: completed.length);
-    }
-  }
+class _SummaryCard extends StatelessWidget {
+  final String emoji;
+  final String title;
+  final String subtitle;
+  final double progress;
+  final Color color;
+  final VoidCallback onTap;
 
-  Future<void> _showAddDialog(BuildContext context) async {
-    final result = await _showQuestDialog(
-      context: context,
-      titleText: 'Новый квест',
-      submitText: 'ДОБАВИТЬ',
-    );
-    if (result == null) return;
-    await context
-        .read<QuestService>()
-        .addCustomQuest(title: result.$1, xp: result.$2);
-  }
+  const _SummaryCard({
+    required this.emoji,
+    required this.title,
+    required this.subtitle,
+    required this.progress,
+    required this.color,
+    required this.onTap,
+  });
 
-  Future<void> _showEditDialog(BuildContext context, Quest quest) async {
-    final result = await _showQuestDialog(
-      context: context,
-      titleText: 'Редактировать квест',
-      submitText: 'СОХРАНИТЬ',
-      initialTitle: quest.title,
-      initialXp: quest.xpReward,
-    );
-    if (result == null) return;
-    await context
-        .read<QuestService>()
-        .updateCustomQuest(quest, title: result.$1, xp: result.$2);
-  }
-
-  Future<(String, int)?> _showQuestDialog({
-    required BuildContext context,
-    required String titleText,
-    required String submitText,
-    String? initialTitle,
-    int? initialXp,
-  }) async {
-    final titleCtrl = TextEditingController(text: initialTitle ?? '');
-    final xpCtrl = TextEditingController(text: (initialXp ?? 30).toString());
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(titleText),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.45)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              controller: titleCtrl,
-              decoration: const InputDecoration(labelText: 'Название'),
-              autofocus: true,
+            Row(
+              children: [
+                Text(emoji, style: const TextStyle(fontSize: 20)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      color: color,
+                      letterSpacing: 2,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: xpCtrl,
-              decoration:
-                  const InputDecoration(labelText: 'XP за выполнение'),
-              keyboardType: TextInputType.number,
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.text,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 6,
+                backgroundColor: AppColors.background,
+                valueColor: AlwaysStoppedAnimation(color),
+              ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(submitText),
-          ),
-        ],
       ),
     );
-    if (confirmed != true) return null;
-    final title = titleCtrl.text.trim();
-    final xp = int.tryParse(xpCtrl.text.trim()) ?? 30;
-    if (title.isEmpty) return null;
-    return (title, xp);
   }
 }
 
@@ -392,21 +455,25 @@ class _BranchesBlock extends StatelessWidget {
           _BranchTile(
             emoji: '💪',
             label: 'ТЕЛО',
+            color: AppColors.red,
             onTap: () => _openStats(context, StatsTab.body),
           ),
           _BranchTile(
             emoji: '📈',
             label: 'БРЕНД',
+            color: AppColors.cyan,
             onTap: () => _openStats(context, StatsTab.content),
           ),
           _BranchTile(
             emoji: '💰',
             label: 'БОГАТСТВО',
+            color: AppColors.emerald,
             onTap: () => _openStats(context, StatsTab.finance),
           ),
           _BranchTile(
             emoji: '🧠',
             label: 'ТВОРЕНИЕ',
+            color: AppColors.violet,
             onTap: () => _openStats(context, StatsTab.general),
           ),
         ],
@@ -416,18 +483,21 @@ class _BranchesBlock extends StatelessWidget {
 
   void _openStats(BuildContext context, StatsTab tab) {
     StatsScreen.selectedTab.value = tab;
-    RootNav.goToTab(context, 3);
+    // Stats теперь индекс 4 после добавления вкладки Квесты.
+    RootNav.goToTab(context, 4);
   }
 }
 
 class _BranchTile extends StatelessWidget {
   final String emoji;
   final String label;
+  final Color color;
   final VoidCallback onTap;
 
   const _BranchTile({
     required this.emoji,
     required this.label,
+    required this.color,
     required this.onTap,
   });
 
@@ -439,9 +509,16 @@ class _BranchTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.background,
+          gradient: LinearGradient(
+            colors: [
+              color.withOpacity(0.12),
+              AppColors.background,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.gold.withOpacity(0.4)),
+          border: Border.all(color: color.withOpacity(0.55)),
         ),
         child: Row(
           children: [
@@ -450,8 +527,8 @@ class _BranchTile extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(
-                  color: AppColors.gold,
+                style: TextStyle(
+                  color: color,
                   letterSpacing: 2,
                   fontWeight: FontWeight.w800,
                 ),

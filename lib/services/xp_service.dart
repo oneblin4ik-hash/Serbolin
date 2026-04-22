@@ -166,6 +166,43 @@ class XPService extends ChangeNotifier {
     return next.clamp(1, 100);
   }
 
+  /// Отмена начислений: вычитает [amount] из прогресса и логирует запись
+  /// со знаком минус. Если прогресс ушёл ниже нуля — уровень откатывается.
+  /// Используется, когда пользователь снимает галочку с выполненного квеста.
+  Future<void> revokeXP({
+    required int amount,
+    required String source,
+    String? description,
+  }) async {
+    if (!_isLoaded) await load();
+    if (amount <= 0) return;
+
+    var newCurrent = _stats.xpCurrent - amount;
+    var newLevel = _stats.level;
+
+    while (newLevel > 1 && newCurrent < 0) {
+      newLevel -= 1;
+      // xpForLevel[newLevel] — сколько требовалось, чтобы выйти из newLevel.
+      newCurrent += PlayerStats.xpForLevel[newLevel];
+    }
+    if (newCurrent < 0) newCurrent = 0;
+
+    final newTotal = (_stats.xpTotal - amount).clamp(0, 1 << 30);
+
+    final updated = _stats.copyWith(
+      level: newLevel,
+      xpCurrent: newCurrent,
+      xpTotal: newTotal,
+    );
+    _stats = await _supabase.updatePlayerStats(updated);
+    await _supabase.logXP(
+      amount: -amount,
+      source: source,
+      description: description,
+    );
+    notifyListeners();
+  }
+
   /// Инкремент атрибутов персонажа. Каждое значение клэмпится на 0..100.
   Future<void> bumpAttributes({
     int strength = 0,

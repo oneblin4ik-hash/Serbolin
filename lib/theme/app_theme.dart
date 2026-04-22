@@ -14,6 +14,12 @@ class AppColors {
   static const Color success = Color(0xFF4CAF50);
   static const Color warning = Color(0xFFFF9800);
 
+  // Дополнительные акценты для более живой палитры.
+  static const Color violet = Color(0xFF7C5CFF);
+  static const Color violetDeep = Color(0xFF4F2BC7);
+  static const Color cyan = Color(0xFF4DD0E1);
+  static const Color emerald = Color(0xFF1FAF72);
+
   static const LinearGradient xpGradient = LinearGradient(
     colors: [Color(0xFF1A1A1A), gold],
     begin: Alignment.centerLeft,
@@ -22,6 +28,34 @@ class AppColors {
 
   static const LinearGradient goldGradient = LinearGradient(
     colors: [gold, goldBright],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Для карточки квеста / цели.
+  static const LinearGradient questGradient = LinearGradient(
+    colors: [Color(0xFF242424), Color(0xFF1A1A1A)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Акцентный градиент для Босса недели.
+  static const LinearGradient bossGradient = LinearGradient(
+    colors: [Color(0xFF2A1116), Color(0xFF180A0D)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Градиент для целей (прохладный фиолетово-cyan).
+  static const LinearGradient goalGradient = LinearGradient(
+    colors: [violetDeep, violet],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Градиент для заголовка/hero-блока на дашборде.
+  static const LinearGradient heroGradient = LinearGradient(
+    colors: [Color(0xFF1E1E1E), Color(0xFF111111)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

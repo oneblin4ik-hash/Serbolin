@@ -8,6 +8,7 @@ import 'screens/login_screen.dart';
 import 'screens/setup_required_screen.dart';
 import 'screens/shell_screen.dart';
 import 'services/achievement_service.dart';
+import 'services/goal_service.dart';
 import 'services/quest_service.dart';
 import 'services/xp_service.dart';
 import 'theme/app_theme.dart';
@@ -82,6 +83,7 @@ class _AuthedRootState extends State<_AuthedRoot> {
   late final XPService _xp;
   late final QuestService _quests;
   late final AchievementService _ach;
+  late final GoalService _goals;
   late final Future<void> _bootstrap;
 
   @override
@@ -90,6 +92,7 @@ class _AuthedRootState extends State<_AuthedRoot> {
     _xp = XPService();
     _quests = QuestService();
     _ach = AchievementService(xpService: _xp);
+    _goals = GoalService();
     _bootstrap = _boot();
   }
 
@@ -97,12 +100,14 @@ class _AuthedRootState extends State<_AuthedRoot> {
     await _xp.load();
     await _quests.load();
     await _ach.load();
+    // Цели загружаются лениво в Quests-вкладке, чтобы не блокировать старт.
   }
 
   @override
   void dispose() {
     _xp.dispose();
     _ach.dispose();
+    _goals.dispose();
     super.dispose();
   }
 
@@ -152,6 +157,7 @@ class _AuthedRootState extends State<_AuthedRoot> {
             ChangeNotifierProvider<XPService>.value(value: _xp),
             ChangeNotifierProvider<QuestService>.value(value: _quests),
             ChangeNotifierProvider<AchievementService>.value(value: _ach),
+            ChangeNotifierProvider<GoalService>.value(value: _goals),
           ],
           child: const ShellScreen(),
         );
