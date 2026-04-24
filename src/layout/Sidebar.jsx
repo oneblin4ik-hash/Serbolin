@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ShieldHalf, Wallet, Users, CalendarDays, ListChecks, Flag, Sparkles, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShieldHalf, Wallet, Users, CalendarDays, ListChecks, Flag, Sparkles, Dumbbell, Rocket, LogOut } from 'lucide-react';
 import { useCharacterStore } from '../store/useCharacterStore';
 import { useQuestStore } from '../store/useQuestStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -10,12 +10,14 @@ import StreakBadge from '../components/StreakBadge';
 
 const NAV = [
   { to: '/dashboard',  label: 'Главная',       icon: LayoutDashboard },
-  { to: '/character',  label: 'Персонаж',      icon: ShieldHalf, showLevel: true },
+  { to: '/character',  label: 'Персонаж',      icon: ShieldHalf,   showLevel: true },
   { to: '/tasks',      label: 'Задачи и Цели', icon: ListChecks },
-  { to: '/quests',     label: 'Квесты',        icon: Flag,        showQuestCount: true },
+  { to: '/quests',     label: 'Квесты',        icon: Flag,         showQuestCount: true },
+  { to: '/workouts',   label: 'Тренировки',    icon: Dumbbell },
   { to: '/content',    label: 'Контент-план',  icon: CalendarDays },
+  { to: '/projects',   label: 'Проекты',       icon: Rocket },
+  { to: '/crm',        label: 'Личная база',   icon: Users },
   { to: '/finance',    label: 'Финансы',       icon: Wallet },
-  { to: '/crm',        label: 'CRM / Лиды',   icon: Users },
 ];
 
 export default function Sidebar() {
@@ -70,7 +72,7 @@ export default function Sidebar() {
       {/* Character mini card */}
       <div className="m-3 rounded-xl border border-bg-border bg-bg-card p-3">
         <div className="flex items-center gap-2.5">
-          <Avatar name={name} src={avatar} size={38} />
+          <Avatar name={name} src={avatar} size={38} level={progress.level} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1">
               <span className="truncate text-sm font-semibold">{name}</span>

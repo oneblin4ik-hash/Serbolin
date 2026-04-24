@@ -75,3 +75,70 @@ create table if not exists v2_content_posts (
 alter table v2_content_posts enable row level security;
 create policy "Own content" on v2_content_posts for all using (auth.uid() = user_id);
 create index if not exists v2_content_user_date on v2_content_posts(user_id, date);
+
+-- ─── Workouts ─────────────────────────────────────────────────────────────────
+create table if not exists v2_workouts (
+  id            text primary key,
+  user_id       uuid references auth.users(id) on delete cascade,
+  date          text not null,
+  title         text not null,
+  muscle_groups jsonb default '[]',
+  exercises     jsonb default '[]',
+  xp            integer default 50,
+  note          text,
+  created_at    bigint
+);
+alter table v2_workouts enable row level security;
+create policy "Own workouts" on v2_workouts for all using (auth.uid() = user_id);
+create index if not exists v2_workouts_user_date on v2_workouts(user_id, date);
+
+-- ─── Body measurements ────────────────────────────────────────────────────────
+create table if not exists v2_body_measurements (
+  id         text primary key,
+  user_id    uuid references auth.users(id) on delete cascade,
+  date       text not null,
+  weight     numeric,
+  chest      numeric,
+  waist      numeric,
+  hip        numeric,
+  thigh      numeric,
+  bicep      numeric,
+  note       text,
+  created_at bigint
+);
+alter table v2_body_measurements enable row level security;
+create policy "Own measurements" on v2_body_measurements for all using (auth.uid() = user_id);
+create index if not exists v2_body_user_date on v2_body_measurements(user_id, date);
+
+-- ─── Projects ─────────────────────────────────────────────────────────────────
+create table if not exists v2_projects (
+  id          text primary key,
+  user_id     uuid references auth.users(id) on delete cascade,
+  title       text not null,
+  description text,
+  status      text default 'active',
+  progress    integer default 0,
+  deadline    text,
+  tags        jsonb default '[]',
+  created_at  bigint
+);
+alter table v2_projects enable row level security;
+create policy "Own projects" on v2_projects for all using (auth.uid() = user_id);
+
+-- ─── CRM clients (Личная база) ────────────────────────────────────────────────
+create table if not exists v2_crm_clients (
+  id             text primary key,
+  user_id        uuid references auth.users(id) on delete cascade,
+  name           text not null,
+  phone          text,
+  telegram       text,
+  city           text,
+  goal           text,
+  level          text,
+  monthly_amount numeric,
+  note           text,
+  payments       jsonb default '[]',
+  created_at     bigint
+);
+alter table v2_crm_clients enable row level security;
+create policy "Own clients" on v2_crm_clients for all using (auth.uid() = user_id);

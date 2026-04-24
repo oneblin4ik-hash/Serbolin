@@ -68,7 +68,7 @@ export default function CharacterPage() {
         <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-brand-gold/10 blur-3xl" />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
           <div className="relative shrink-0">
-            <Avatar name={name} src={avatar} size={100} />
+            <Avatar name={name} src={avatar} size={100} level={progress.level} />
             <div className="absolute -bottom-1 -right-1 rounded-full bg-brand-gold px-2.5 py-0.5 font-display text-xs font-black text-bg-base shadow-glow-gold">
               Lv {progress.level}
             </div>

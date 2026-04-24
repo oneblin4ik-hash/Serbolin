@@ -83,6 +83,12 @@ export const useQuestStore = create(
         set((s) => ({ quests: [quest, ...s.quests] }));
       },
 
+      updateQuest: (id, patch) => {
+        set((s) => ({ quests: s.quests.map((q) => q.id === id ? { ...q, ...patch } : q) }));
+        const updated = get().quests.find((q) => q.id === id);
+        if (updated) get()._syncQuest(updated);
+      },
+
       deleteQuest: (id) => set((s) => ({ quests: s.quests.filter((q) => q.id !== id) })),
 
       _bumpBossProgress: () => {

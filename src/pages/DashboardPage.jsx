@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Trophy, Flame, Flag, CalendarDays, ListChecks } from 'lucide-react';
+import { Trophy, Flame, Flag, ListChecks } from 'lucide-react';
 import { useCharacterStore } from '../store/useCharacterStore';
 import { useQuestStore } from '../store/useQuestStore';
 import { useTasksStore } from '../store/useTasksStore';
@@ -10,37 +10,67 @@ import { ACHIEVEMENTS } from '../lib/constants';
 import Avatar from '../components/Avatar';
 import StreakBadge from '../components/StreakBadge';
 import BossCard from '../features/quests/BossCard';
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
+import { useState, useEffect } from 'react';
+
+function UtcClock() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  // UTC+5
+  const utc5 = new Date(now.getTime() + (5 * 60 - now.getTimezoneOffset()) * 60000);
+  return (
+    <div className="text-center">
+      <div className="font-display text-4xl font-black text-brand-gold tabular-nums">
+        {utc5.toTimeString().slice(0, 5)}
+      </div>
+      <div className="text-xs text-text-muted mt-0.5 capitalize">
+        {format(utc5, 'EEEE, d MMMM', { locale: ru })} · UTC+5
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
-  const { name, avatar, totalXp, streakDays, stats } = useCharacterStore();
+  const { name, avatar, totalXp, streakDays } = useCharacterStore();
   const quests   = useQuestStore((s) => s.quests);
   const boss     = useQuestStore((s) => s.boss);
   const tasks    = useTasksStore((s) => s.tasks);
   const unlocked = useAchievementsStore((s) => s.unlocked);
 
-  const progress   = getProgressToNextLevel(totalXp);
-  const rank       = getRank(progress.level);
-  const today      = todayKey();
+  const progress    = getProgressToNextLevel(totalXp);
+  const rank        = getRank(progress.level);
+  const today       = todayKey();
   const todayQuests = quests.filter((q) => q.dateKey === today);
   const doneQuests  = todayQuests.filter((q) => q.completedAt).length;
-  const todayXp     = tasks.filter((t) => t.completedAt && t.completedAt > new Date().setHours(0,0,0,0)).reduce((s, t) => s + t.xp, 0);
+  const todayXp     = tasks
+    .filter((t) => t.completedAt && t.completedAt > new Date().setHours(0,0,0,0))
+    .reduce((s, t) => s + t.xp, 0);
   const mult        = getStreakMultiplier(streakDays);
   const recentAch   = ACHIEVEMENTS.filter((a) => unlocked.includes(a.key)).slice(-3);
 
   return (
     <div className="space-y-6">
 
+      {/* Clock */}
+      <div className="card p-5 flex items-center justify-center">
+        <UtcClock />
+      </div>
+
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-3xl border border-bg-border bg-gradient-to-br from-bg-card to-bg-soft p-6 sm:p-8">
+      <div className="relative overflow-hidden rounded-3xl border border-bg-border bg-gradient-to-br from-bg-card to-bg-soft p-6">
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand-gold/10 blur-3xl" />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
-          <Avatar name={name} src={avatar} size={80} />
+          <Avatar name={name} src={avatar} size={80} level={progress.level} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="font-display text-2xl font-black text-text-primary">{name}</h1>
+              <h1 className="font-display text-2xl font-black">{name}</h1>
               <StreakBadge days={streakDays} showMultiplier />
             </div>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
               <span className="badge-gold">{rank}</span>
               <span className="text-xs text-text-muted">Уровень {progress.level}</span>
               {mult > 1 && <span className="text-xs text-accent-green font-semibold">×{mult} XP</span>}
@@ -55,7 +85,7 @@ export default function DashboardPage() {
               </div>
               <div className="mt-2 text-[11px] text-text-muted flex items-center gap-1">
                 <Trophy className="h-3 w-3 text-brand-gold" />
-                Всего заработано: {totalXp.toLocaleString('ru')} XP
+                Всего: {totalXp.toLocaleString('ru')} XP
               </div>
             </div>
           </div>
@@ -65,14 +95,14 @@ export default function DashboardPage() {
       {/* Stats row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: 'Квестов сегодня', value: `${doneQuests}/${todayQuests.length}`, icon: Flag, color: 'text-brand-gold' },
-          { label: 'XP сегодня', value: `+${todayXp}`, icon: Trophy, color: 'text-accent-green' },
-          { label: 'Страйк дней', value: streakDays, icon: Flame, color: 'text-accent-red' },
-          { label: 'Задач активно', value: tasks.filter((t) => !t.completedAt).length, icon: ListChecks, color: 'text-accent-blue' },
+          { label: 'Квестов сегодня', value: `${doneQuests}/${todayQuests.length}`, icon: Flag,      color: 'text-brand-gold'   },
+          { label: 'XP сегодня',      value: `+${todayXp}`,                          icon: Trophy,    color: 'text-accent-green' },
+          { label: 'Страйк дней',     value: streakDays,                               icon: Flame,     color: 'text-accent-red'   },
+          { label: 'Задач активно',   value: tasks.filter((t) => !t.completedAt).length, icon: ListChecks, color: 'text-accent-blue' },
         ].map((item) => (
           <div key={item.label} className="card p-4">
             <item.icon className={`h-4 w-4 mb-2 ${item.color}`} />
-            <div className="font-display text-xl font-black text-text-primary">{item.value}</div>
+            <div className="font-display text-xl font-black">{item.value}</div>
             <div className="text-[11px] text-text-muted mt-0.5">{item.label}</div>
           </div>
         ))}
@@ -89,14 +119,16 @@ export default function DashboardPage() {
       {/* Quick links */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          { to: '/quests',  label: 'Квесты дня',   emoji: '🎯', desc: `${doneQuests}/${todayQuests.length} выполнено` },
-          { to: '/content', label: 'Контент-план',  emoji: '📅', desc: 'Запланировать посты' },
-          { to: '/tasks',   label: 'Задачи и Цели', emoji: '✅', desc: `${tasks.filter((t) => !t.completedAt).length} активных` },
-          { to: '/character', label: 'Персонаж',    emoji: '⚔️', desc: `Уровень ${progress.level} • ${rank}` },
+          { to: '/quests',    label: 'Квесты дня',     emoji: '🎯', desc: `${doneQuests}/${todayQuests.length} выполнено` },
+          { to: '/content',   label: 'Контент-план',   emoji: '📅', desc: 'Запланировать посты' },
+          { to: '/tasks',     label: 'Задачи и Цели',  emoji: '✅', desc: `${tasks.filter((t) => !t.completedAt).length} активных` },
+          { to: '/workouts',  label: 'Тренировки',     emoji: '🏋️', desc: 'Записать тренировку' },
+          { to: '/projects',  label: 'Проекты',        emoji: '🚀', desc: 'Мои проекты' },
+          { to: '/character', label: 'Персонаж',       emoji: '⚔️', desc: `Уровень ${progress.level} · ${rank}` },
         ].map((link) => (
           <Link key={link.to} to={link.to} className="card-hover p-4 block">
             <div className="text-2xl mb-2">{link.emoji}</div>
-            <div className="font-semibold text-sm text-text-primary">{link.label}</div>
+            <div className="font-semibold text-sm">{link.label}</div>
             <div className="text-[11px] text-text-muted mt-0.5">{link.desc}</div>
           </Link>
         ))}
@@ -111,7 +143,7 @@ export default function DashboardPage() {
               <div key={a.key} className="flex shrink-0 items-center gap-2 rounded-xl border border-brand-gold/20 bg-brand-gold/5 px-3 py-2">
                 <span className="text-lg">{a.emoji}</span>
                 <div>
-                  <div className="text-xs font-bold text-text-primary">{a.title}</div>
+                  <div className="text-xs font-bold">{a.title}</div>
                   <div className="text-[10px] text-text-muted">+{a.xpReward} XP</div>
                 </div>
               </div>
