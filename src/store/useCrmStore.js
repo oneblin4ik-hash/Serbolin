@@ -2,52 +2,58 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { nanoid } from 'nanoid';
 import { supabase } from '../lib/supabase';
+import { useWalletStore } from './useWalletStore';
+
+export const CRM_STAGES = [
+  { id: 'lead',  label: 'Лид',        color: '#888' },
+  { id: 'call',  label: 'Созвон',     color: '#14B8A6' },
+  { id: 'paid',  label: 'Оплачено',   color: '#D4A843' },
+  { id: 'done',  label: 'Завершено',  color: '#43A047' },
+];
 
 export const useCrmStore = create(
   persist(
     (set, get) => ({
-      clients: [],
-      // client: { id, name, phone, telegram, city, goal, level, monthlyAmount, note, payments[], createdAt }
+      leads: [],
+      // lead: { id, name, phone, amount, stage, next, note, createdAt }
 
-      addClient: (data) => {
-        const entry = { id: nanoid(), payments: [], createdAt: Date.now(), ...data };
-        set((s) => ({ clients: [entry, ...s.clients] }));
+      addLead: (data) => {
+        const entry = { id: nanoid(), stage: 'lead', amount: 0, createdAt: Date.now(), ...data };
+        set((s) => ({ leads: [entry, ...s.leads] }));
         get()._sync(entry);
       },
 
-      updateClient: (id, patch) => {
-        set((s) => ({ clients: s.clients.map((c) => c.id === id ? { ...c, ...patch } : c) }));
-        const updated = get().clients.find((c) => c.id === id);
+      updateLead: (id, patch) => {
+        set((s) => ({ leads: s.leads.map((l) => l.id === id ? { ...l, ...patch } : l) }));
+        const updated = get().leads.find((l) => l.id === id);
         if (updated) get()._sync(updated);
       },
 
-      deleteClient: (id) => set((s) => ({ clients: s.clients.filter((c) => c.id !== id) })),
+      deleteLead: (id) => set((s) => ({ leads: s.leads.filter((l) => l.id !== id) })),
 
-      addPayment: (clientId, { amount, date, note = '' }) => {
-        const payment = { id: nanoid(), amount: parseFloat(amount), date: date || new Date().toISOString().slice(0, 10), note, createdAt: Date.now() };
-        set((s) => ({
-          clients: s.clients.map((c) =>
-            c.id === clientId ? { ...c, payments: [payment, ...(c.payments || [])] } : c
-          ),
-        }));
-        const updated = get().clients.find((c) => c.id === clientId);
-        if (updated) get()._sync(updated);
-      },
+      moveLead: (id, stage) => {
+        set((s) => ({ leads: s.leads.map((l) => l.id === id ? { ...l, stage } : l) }));
+        const lead = get().leads.find((l) => l.id === id);
+        if (lead) get()._sync({ ...lead, stage });
 
-      deletePayment: (clientId, paymentId) => {
-        set((s) => ({
-          clients: s.clients.map((c) =>
-            c.id === clientId ? { ...c, payments: (c.payments || []).filter((p) => p.id !== paymentId) } : c
-          ),
-        }));
-        const updated = get().clients.find((c) => c.id === clientId);
-        if (updated) get()._sync(updated);
+        // Auto-add to wallet when moved to 'paid'
+        if (stage === 'paid') {
+          const lead = get().leads.find((l) => l.id === id);
+          if (lead && lead.amount > 0) {
+            useWalletStore.getState().addEntry({
+              type: 'income',
+              cat: 'Клиент',
+              amount: lead.amount,
+              note: `${lead.name} — оплата`,
+            });
+          }
+        }
       },
 
       _sync: async (entry) => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
-        await supabase.from('v2_crm_clients').upsert({ ...entry, user_id: session.user.id });
+        await supabase.from('v2_crm_leads').upsert({ ...entry, user_id: session.user.id });
       },
     }),
     { name: 'sss.crm.v2' }

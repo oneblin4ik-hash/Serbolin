@@ -1,282 +1,203 @@
 import { useState } from 'react';
-import { Plus, Users, Pencil, Trash2, ChevronDown, ChevronUp, Phone, MessageCircle, DollarSign, Calendar } from 'lucide-react';
-import { useCrmStore } from '../store/useCrmStore';
-import { useUiStore } from '../store/useUiStore';
-import { format, parseISO, differenceInDays } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { Plus, Users } from 'lucide-react';
+import { useCrmStore, CRM_STAGES } from '../store/useCrmStore';
 
-const GOALS = ['Набор массы', 'Похудение', 'Рельеф', 'Сила', 'Поддержание формы', 'Реабилитация', 'Общая физподготовка'];
-const LEVELS = ['Новичок', 'Средний', 'Опытный', 'Про'];
-
-function ClientForm({ initial, onSave, onCancel }) {
-  const [form, setForm] = useState({
-    name: '', phone: '', telegram: '', city: '', goal: '', level: 'Новичок', monthlyAmount: '', note: '',
-    ...(initial || {}),
-  });
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+function LeadModal({ lead, onSave, onDelete, onClose }) {
+  const [f, setF] = useState(lead || { name: '', phone: '', amount: 0, next: '', note: '', stage: 'lead' });
+  const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSave(form); }} className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2">
-          <label className="label">Имя клиента</label>
-          <input className="input" value={form.name} onChange={(e) => set('name', e.target.value)} required autoFocus placeholder="Иван Иванов" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl border border-bg-border bg-bg-card p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="text-[11px] uppercase tracking-widest text-text-muted mb-1">
+          {lead ? 'Редактировать' : 'Новый лид'}
         </div>
-        <div>
-          <label className="label">Телефон</label>
-          <input className="input" value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="+7 999 123-45-67" />
-        </div>
-        <div>
-          <label className="label">Telegram</label>
-          <input className="input" value={form.telegram} onChange={(e) => set('telegram', e.target.value)} placeholder="@username" />
-        </div>
-        <div>
-          <label className="label">Город</label>
-          <input className="input" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Москва" />
-        </div>
-        <div>
-          <label className="label">Сумма в месяц (₽)</label>
-          <input className="input" type="number" value={form.monthlyAmount} onChange={(e) => set('monthlyAmount', e.target.value)} placeholder="10000" />
-        </div>
-        <div>
-          <label className="label">Цель</label>
-          <select className="input" value={form.goal} onChange={(e) => set('goal', e.target.value)}>
-            <option value="">— Выбери —</option>
-            {GOALS.map((g) => <option key={g} value={g}>{g}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Уровень подготовки</label>
-          <select className="input" value={form.level} onChange={(e) => set('level', e.target.value)}>
-            {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
-        </div>
-        <div className="col-span-2">
-          <label className="label">Заметка</label>
-          <textarea className="input resize-none" rows={2} value={form.note} onChange={(e) => set('note', e.target.value)} placeholder="Особенности, противопоказания, пожелания..." />
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <button type="submit" className="btn-primary flex-1 justify-center">Сохранить</button>
-        {onCancel && <button type="button" onClick={onCancel} className="btn-ghost flex-1 justify-center">Отмена</button>}
-      </div>
-    </form>
-  );
-}
+        <h2 className="font-display text-xl font-black mb-5">Карточка клиента</h2>
 
-function PaymentForm({ onSave, onCancel }) {
-  const [amount, setAmount] = useState('');
-  const [date, setDate]     = useState(new Date().toISOString().slice(0, 10));
-  const [note, setNote]     = useState('');
-
-  return (
-    <form onSubmit={(e) => { e.preventDefault(); onSave({ amount, date, note }); }} className="space-y-3">
-      <div>
-        <label className="label">Сумма (₽)</label>
-        <input className="input" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} required autoFocus placeholder="10000" />
-      </div>
-      <div>
-        <label className="label">Дата оплаты</label>
-        <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-      </div>
-      <div>
-        <label className="label">Комментарий</label>
-        <input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="За апрель, предоплата..." />
-      </div>
-      <div className="flex gap-2">
-        <button type="submit" className="btn-primary flex-1 justify-center">Добавить</button>
-        {onCancel && <button type="button" onClick={onCancel} className="btn-ghost flex-1 justify-center">Отмена</button>}
-      </div>
-    </form>
-  );
-}
-
-function ClientCard({ client }) {
-  const [open, setOpen]   = useState(false);
-  const { updateClient, deleteClient, addPayment, deletePayment } = useCrmStore();
-  const { openModal, closeModal } = useUiStore();
-
-  const lastPayment = client.payments?.[0];
-  const daysSince   = lastPayment ? differenceInDays(new Date(), parseISO(lastPayment.date)) : null;
-  const totalPaid   = (client.payments || []).reduce((s, p) => s + (p.amount || 0), 0);
-
-  const statusColor = daysSince === null ? 'text-text-muted'
-    : daysSince > 35 ? 'text-accent-red'
-    : daysSince > 25 ? 'text-accent-amber'
-    : 'text-accent-green';
-
-  const handleEdit = () => openModal('Редактировать клиента',
-    <ClientForm initial={client} onSave={(data) => { updateClient(client.id, data); closeModal(); }} onCancel={closeModal} />
-  );
-
-  const handleAddPayment = () => openModal('Добавить оплату',
-    <PaymentForm onSave={(data) => { addPayment(client.id, data); closeModal(); }} onCancel={closeModal} />
-  );
-
-  return (
-    <div className="card p-4">
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-gold/10 font-display font-black text-brand-gold text-sm">
-          {client.name?.charAt(0)?.toUpperCase() || 'K'}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-semibold text-sm truncate">{client.name}</span>
-            <div className="flex items-center gap-1 shrink-0">
-              <button onClick={handleEdit} className="btn-ghost !p-1.5"><Pencil className="h-3.5 w-3.5" /></button>
-              <button onClick={() => window.confirm('Удалить клиента?') && deleteClient(client.id)} className="btn-ghost !p-1.5 text-accent-red"><Trash2 className="h-3.5 w-3.5" /></button>
+        <div className="space-y-3">
+          <div>
+            <label className="label">Имя</label>
+            <input className="input" value={f.name} onChange={(e) => set('name', e.target.value)} autoFocus placeholder="Иван Иванов" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Телефон</label>
+              <input className="input" value={f.phone} onChange={(e) => set('phone', e.target.value)} placeholder="+7 999 000-00-00" />
+            </div>
+            <div>
+              <label className="label">Сумма (₽)</label>
+              <input className="input" type="number" value={f.amount || ''} onChange={(e) => set('amount', parseInt(e.target.value) || 0)} placeholder="10000" />
             </div>
           </div>
-
-          <div className="flex items-center gap-3 mt-1 flex-wrap">
-            {client.goal && <span className="text-[11px] text-text-muted">{client.goal}</span>}
-            {client.level && <span className="text-[11px] bg-bg-hover px-2 py-0.5 rounded-full text-text-secondary">{client.level}</span>}
-            {client.monthlyAmount && (
-              <span className="text-[11px] font-semibold text-accent-green">
-                {parseFloat(client.monthlyAmount).toLocaleString('ru')} ₽/мес
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3 mt-1.5 flex-wrap text-[11px] text-text-muted">
-            {client.phone && (
-              <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{client.phone}</span>
-            )}
-            {client.telegram && (
-              <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" />{client.telegram}</span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-4 mt-2">
-            <span className={`text-[11px] font-medium flex items-center gap-1 ${statusColor}`}>
-              <Calendar className="h-3 w-3" />
-              {lastPayment
-                ? `Оплата ${daysSince}д. назад`
-                : 'Нет оплат'}
-            </span>
-            {totalPaid > 0 && (
-              <span className="text-[11px] text-text-muted">
-                Итого: {totalPaid.toLocaleString('ru')} ₽
-              </span>
-            )}
-          </div>
-        </div>
-        <button onClick={() => setOpen((v) => !v)} className="btn-ghost !p-1.5 shrink-0 text-text-muted">
-          {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </button>
-      </div>
-
-      {open && (
-        <div className="mt-3 border-t border-bg-border pt-3 space-y-3">
-          {client.note && (
-            <p className="text-xs text-text-muted italic">{client.note}</p>
-          )}
-
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-text-secondary">История оплат</span>
-            <button onClick={handleAddPayment} className="btn-ghost !py-1 !px-2 text-xs">
-              <Plus className="h-3 w-3" /> Добавить
-            </button>
-          </div>
-
-          {(client.payments || []).length === 0 ? (
-            <p className="text-xs text-text-muted">Нет оплат</p>
-          ) : (
-            <div className="space-y-1.5">
-              {client.payments.map((p) => (
-                <div key={p.id} className="flex items-center justify-between gap-2 text-xs">
-                  <span className="text-accent-green font-semibold">+{p.amount?.toLocaleString('ru')} ₽</span>
-                  <span className="text-text-muted flex-1 text-right">
-                    {format(parseISO(p.date), 'd MMM yyyy', { locale: ru })}
-                    {p.note ? ` · ${p.note}` : ''}
-                  </span>
-                  <button onClick={() => deletePayment(client.id, p.id)} className="text-text-muted hover:text-accent-red transition-colors">
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Этап</label>
+              <select className="input" value={f.stage} onChange={(e) => set('stage', e.target.value)}>
+                {CRM_STAGES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+              </select>
             </div>
-          )}
+            <div>
+              <label className="label">Следующий контакт</label>
+              <input className="input" type="date" value={f.next || ''} onChange={(e) => set('next', e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <label className="label">Заметки</label>
+            <textarea className="input resize-none" rows={3} value={f.note} onChange={(e) => set('note', e.target.value)} placeholder="Цель, особенности, договорённости..." />
+          </div>
         </div>
-      )}
+
+        <div className="flex items-center justify-between mt-5">
+          <div>
+            {lead && (
+              <button onClick={() => onDelete(lead.id)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-accent-red/40 text-accent-red hover:bg-accent-red/10 transition-colors">
+                Удалить
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="btn-ghost">Отмена</button>
+            <button onClick={() => onSave(f)} className="btn-primary">Сохранить</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
+function LeadCard({ lead }) {
+  const { moveLead } = useCrmStore();
+  const [editing, setEditing] = useState(false);
+  const { updateLead, deleteLead } = useCrmStore();
+
+  const handleSave = (data) => { updateLead(lead.id, data); setEditing(false); };
+  const handleDelete = (id) => { deleteLead(id); setEditing(false); };
+
+  return (
+    <>
+      <div
+        onClick={() => setEditing(true)}
+        className="group p-3 rounded-xl bg-bg-card border border-bg-border hover:border-brand-gold/50 cursor-pointer transition-all mb-2"
+      >
+        <div className="flex items-start justify-between gap-2 text-sm">
+          <span className="font-medium leading-tight">{lead.name}</span>
+          {lead.amount > 0 && (
+            <span className="font-display text-xs font-bold text-brand-gold shrink-0">
+              {lead.amount.toLocaleString('ru-RU')} ₽
+            </span>
+          )}
+        </div>
+        {lead.phone && (
+          <div className="font-mono text-[11px] text-text-muted mt-1">{lead.phone}</div>
+        )}
+        {lead.note && (
+          <div className="text-[11px] text-text-secondary mt-1.5 line-clamp-2 leading-relaxed">{lead.note}</div>
+        )}
+        {lead.next && (
+          <div className="text-[10px] text-brand-gold mt-1.5">→ {lead.next}</div>
+        )}
+        {/* Stage quick-move buttons */}
+        <div className="flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          {CRM_STAGES.filter((s) => s.id !== lead.stage).map((s) => (
+            <button
+              key={s.id}
+              onClick={(e) => { e.stopPropagation(); moveLead(lead.id, s.id); }}
+              style={{ color: s.color, borderColor: `${s.color}40` }}
+              className="px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider border bg-transparent hover:opacity-80 transition-opacity"
+            >
+              → {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {editing && (
+        <LeadModal
+          lead={lead}
+          onSave={handleSave}
+          onDelete={handleDelete}
+          onClose={() => setEditing(false)}
+        />
+      )}
+    </>
+  );
+}
+
 export default function CrmPage() {
-  const { clients, addClient } = useCrmStore();
-  const { openModal, closeModal } = useUiStore();
-  const [search, setSearch] = useState('');
+  const { leads, addLead, updateLead, deleteLead } = useCrmStore();
+  const [newOpen, setNewOpen] = useState(false);
 
-  const totalRevenue = clients.reduce((s, c) =>
-    s + (c.payments || []).reduce((ps, p) => ps + (p.amount || 0), 0), 0);
-  const activeClients = clients.filter((c) => {
-    const last = c.payments?.[0];
-    return last && differenceInDays(new Date(), parseISO(last.date)) <= 35;
-  }).length;
+  const totalPaid = leads
+    .filter((l) => l.stage === 'paid' || l.stage === 'done')
+    .reduce((s, l) => s + (l.amount || 0), 0);
 
-  const filtered = clients.filter((c) =>
-    !search || c.name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.telegram?.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const handleAdd = () => openModal('Новый клиент',
-    <ClientForm onSave={(data) => { addClient(data); closeModal(); }} onCancel={closeModal} />
-  );
+  const handleSave = (data) => {
+    if (data.id) updateLead(data.id, data);
+    else addLead(data);
+    setNewOpen(false);
+  };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-black">Личная база</h1>
-          <p className="text-sm text-text-muted mt-0.5">Клиенты, оплаты и коммуникация</p>
+          <p className="text-[11px] uppercase tracking-widest text-text-muted">Воронка</p>
+          <h1 className="font-display text-2xl font-black">CRM · Лиды</h1>
+          <p className="text-sm text-text-muted mt-0.5">
+            {leads.length} клиентов · всего оплачено {totalPaid.toLocaleString('ru-RU')} ₽
+          </p>
         </div>
-        <button onClick={handleAdd} className="btn-primary">
-          <Plus className="h-4 w-4" /> Клиент
+        <button onClick={() => setNewOpen(true)} className="btn-primary">
+          <Plus className="h-4 w-4" /> Новый лид
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: 'Всего клиентов',  value: clients.length,                          icon: Users,       color: 'text-brand-gold'   },
-          { label: 'Активных',         value: activeClients,                            icon: Users,       color: 'text-accent-green' },
-          { label: 'Общий оборот',     value: `${totalRevenue.toLocaleString('ru')} ₽`, icon: DollarSign,  color: 'text-accent-blue'  },
-        ].map((s) => (
-          <div key={s.label} className="card p-4">
-            <s.icon className={`h-4 w-4 mb-2 ${s.color}`} />
-            <div className="font-display text-lg font-black leading-tight">{s.value}</div>
-            <div className="text-[11px] text-text-muted mt-0.5">{s.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Search */}
-      {clients.length > 0 && (
-        <input
-          className="input"
-          placeholder="Поиск по имени или @telegram..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      )}
-
-      {/* List */}
-      {clients.length === 0 ? (
+      {/* Kanban board */}
+      {leads.length === 0 && !newOpen ? (
         <div className="card p-10 text-center">
           <Users className="h-10 w-10 text-text-muted mx-auto mb-3" />
-          <p className="font-semibold text-text-secondary">Нет клиентов</p>
-          <p className="text-sm text-text-muted mt-1">Добавь первого клиента и отслеживай оплаты</p>
-          <button onClick={handleAdd} className="btn-primary mt-4 mx-auto">
-            <Plus className="h-4 w-4" /> Первый клиент
+          <p className="font-semibold text-text-secondary">Нет лидов</p>
+          <p className="text-sm text-text-muted mt-1">Добавь первого клиента в воронку</p>
+          <button onClick={() => setNewOpen(true)} className="btn-primary mt-4 mx-auto">
+            <Plus className="h-4 w-4" /> Первый лид
           </button>
         </div>
-      ) : filtered.length === 0 ? (
-        <p className="text-center text-text-muted text-sm">Ничего не найдено</p>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((c) => <ClientCard key={c.id} client={c} />)}
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+          {CRM_STAGES.map((stage) => {
+            const stageLeads = leads.filter((l) => l.stage === stage.id);
+            return (
+              <div key={stage.id} className="rounded-2xl border border-bg-border bg-bg-soft p-3 min-h-[400px]">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[8px]" style={{ color: stage.color }}>●</span>
+                    <span className="text-[11px] uppercase tracking-widest font-semibold" style={{ color: stage.color }}>
+                      {stage.label}
+                    </span>
+                  </div>
+                  <span className="font-mono text-[11px] text-text-muted">{stageLeads.length}</span>
+                </div>
+                {stageLeads.map((lead) => (
+                  <LeadCard key={lead.id} lead={lead} />
+                ))}
+              </div>
+            );
+          })}
         </div>
+      )}
+
+      {/* Mobile fallback — stacked columns */}
+      <style>{`@media(max-width:640px){.crm-board{grid-template-columns:1fr!important}}`}</style>
+
+      {newOpen && (
+        <LeadModal
+          lead={null}
+          onSave={handleSave}
+          onDelete={() => {}}
+          onClose={() => setNewOpen(false)}
+        />
       )}
     </div>
   );

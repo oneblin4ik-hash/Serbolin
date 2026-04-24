@@ -16,8 +16,8 @@ const NAV = [
   { to: '/workouts',   label: 'Тренировки',    icon: Dumbbell },
   { to: '/content',    label: 'Контент-план',  icon: CalendarDays },
   { to: '/projects',   label: 'Проекты',       icon: Rocket },
-  { to: '/crm',        label: 'Личная база',   icon: Users },
-  { to: '/finance',    label: 'Финансы',       icon: Wallet },
+  { to: '/crm',        label: 'CRM · Лиды',   icon: Users },
+  { to: '/wallet',     label: 'Кошелёк',       icon: Wallet },
 ];
 
 export default function Sidebar() {

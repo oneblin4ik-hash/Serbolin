@@ -13,6 +13,7 @@ import ContentPage from './pages/ContentPage';
 import WorkoutsPage from './pages/WorkoutsPage';
 import ProjectsPage from './pages/ProjectsPage';
 import CrmPage from './pages/CrmPage';
+import WalletPage from './pages/WalletPage';
 import ComingSoon from './pages/ComingSoon';
 
 export default function App() {
@@ -52,7 +53,8 @@ export default function App() {
         <Route path="/workouts"   element={<WorkoutsPage />} />
         <Route path="/projects"   element={<ProjectsPage />} />
         <Route path="/crm"        element={<CrmPage />} />
-        <Route path="/finance"    element={<ComingSoon title="Финансы" description="Учёт доходов, расходов и финансовых целей. Скоро будет." />} />
+        <Route path="/wallet"     element={<WalletPage />} />
+        <Route path="/finance"    element={<Navigate to="/wallet" replace />} />
         <Route path="*"           element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>

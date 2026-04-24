@@ -142,3 +142,30 @@ create table if not exists v2_crm_clients (
 );
 alter table v2_crm_clients enable row level security;
 create policy "Own clients" on v2_crm_clients for all using (auth.uid() = user_id);
+
+-- ─── CRM leads (воронка продаж) ───────────────────────────────────────────────
+create table if not exists v2_crm_leads (
+  id          text primary key,
+  user_id     uuid references auth.users(id) on delete cascade,
+  name        text not null,
+  phone       text,
+  amount      numeric default 0,
+  stage       text default 'lead',
+  next        text,
+  note        text,
+  created_at  bigint
+);
+alter table v2_crm_leads enable row level security;
+create policy "Own leads" on v2_crm_leads for all using (auth.uid() = user_id);
+
+-- ─── Wallet ───────────────────────────────────────────────────────────────────
+create table if not exists v2_wallet (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid unique references auth.users(id) on delete cascade,
+  balance    numeric not null default 0,
+  goal       numeric not null default 100000,
+  entries    jsonb not null default '[]',
+  updated_at timestamptz default now()
+);
+alter table v2_wallet enable row level security;
+create policy "Own wallet" on v2_wallet for all using (auth.uid() = user_id);
