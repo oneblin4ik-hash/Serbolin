@@ -5,11 +5,12 @@ import { supabase } from '../lib/supabase';
 import { useCharacterStore } from './useCharacterStore';
 import { useUiStore } from './useUiStore';
 import { useAchievementsStore } from './useAchievementsStore';
+import { useEventLogStore } from './useEventLogStore';
 
 export const useWorkoutsStore = create(
   persist(
     (set, get) => ({
-      workouts: [], // [{ id, date, title, muscleGroups[], exercises[{name,sets,reps,weight}], xp, note, createdAt }]
+      workouts: [],
 
       addWorkout: ({ date, title, muscleGroups = [], exercises = [], xp = 50, note = '' }) => {
         const entry = { id: nanoid(), date: date || new Date().toISOString().slice(0,10), title: title || 'Тренировка', muscleGroups, exercises, xp, note, createdAt: Date.now() };
@@ -26,6 +27,7 @@ export const useWorkoutsStore = create(
         if (total >= 1)  achStore.unlock('first_workout');
         if (total >= 50) achStore.unlock('workouts_50');
 
+        useEventLogStore.getState().log(`Тренировка «${entry.title}»`, result.amount);
         get()._sync(entry);
       },
 

@@ -7,6 +7,7 @@ import { todayKey, weekKey } from '../lib/dates';
 import { useCharacterStore } from './useCharacterStore';
 import { useUiStore } from './useUiStore';
 import { useAchievementsStore } from './useAchievementsStore';
+import { useEventLogStore } from './useEventLogStore';
 
 function generateDailyQuests(dateKey) {
   const all = [];
@@ -63,6 +64,8 @@ export const useQuestStore = create(
 
         useUiStore.getState().showXpPopup(result.amount, result.multiplier);
         if (result.leveledUp) useUiStore.getState().showLevelUp(result.newLevel, result.newRank);
+
+        useEventLogStore.getState().log(`«${quest.title}» — выполнено`, result.amount);
 
         const ach = useAchievementsStore.getState();
         ach.checkStreak(charStore.streakDays);

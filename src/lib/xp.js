@@ -40,20 +40,26 @@ export function applyXp(baseAmount, streakDays) {
   return { amount: amount + bonus, multiplier, bonus };
 }
 
-// Rank titles by level
 export const RANKS = {
-  1:  'Новичок',
-  2:  'Новичок',
+  1:  'Новобранец',
+  2:  'Рекрут',
   3:  'Воин',
-  4:  'Воин',
+  4:  'Воин-ветеран',
   5:  'Чемпион',
-  6:  'Чемпион',
-  7:  'Чемпион',
-  8:  'Архитектор дисциплины',
+  6:  'Стратег',
+  7:  'Командир',
+  8:  'Архитектор',
   9:  'Архитектор дисциплины',
   10: 'Легенда',
 };
 
 export function getRank(level) {
-  return RANKS[Math.min(level, 10)] || 'Новичок';
+  return RANKS[Math.min(level, 10)] || 'Новобранец';
+}
+
+// Season tracking
+const SEASON_START = new Date('2026-01-20');
+export function getSeasonDay() {
+  const diff = Date.now() - SEASON_START.getTime();
+  return Math.max(1, Math.floor(diff / 86400000) + 1);
 }

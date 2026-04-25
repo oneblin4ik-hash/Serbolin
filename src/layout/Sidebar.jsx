@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ShieldHalf, Wallet, Users, CalendarDays, ListChecks, Flag, Sparkles, Dumbbell, Rocket, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShieldHalf, Wallet, Users, CalendarDays, Flag, Sparkles, Dumbbell, LogOut } from 'lucide-react';
 import { useCharacterStore } from '../store/useCharacterStore';
 import { useQuestStore } from '../store/useQuestStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -10,14 +10,12 @@ import StreakBadge from '../components/StreakBadge';
 
 const NAV = [
   { to: '/dashboard',  label: 'Главная',       icon: LayoutDashboard },
-  { to: '/character',  label: 'Персонаж',      icon: ShieldHalf,   showLevel: true },
-  { to: '/tasks',      label: 'Задачи и Цели', icon: ListChecks },
-  { to: '/quests',     label: 'Квесты',        icon: Flag,         showQuestCount: true },
-  { to: '/workouts',   label: 'Тренировки',    icon: Dumbbell },
-  { to: '/content',    label: 'Контент-план',  icon: CalendarDays },
-  { to: '/projects',   label: 'Проекты',       icon: Rocket },
-  { to: '/crm',        label: 'CRM · Лиды',   icon: Users },
-  { to: '/wallet',     label: 'Кошелёк',       icon: Wallet },
+  { to: '/character',  label: 'Персонаж',       icon: ShieldHalf,   showLevel: true },
+  { to: '/quests',     label: 'Квесты',         icon: Flag,         showQuestCount: true },
+  { to: '/workouts',   label: 'Тренировки',     icon: Dumbbell },
+  { to: '/content',    label: 'Контент-план',   icon: CalendarDays },
+  { to: '/crm',        label: 'Личная база',    icon: Users },
+  { to: '/wallet',     label: 'Кошелёк',        icon: Wallet },
 ];
 
 export default function Sidebar() {
@@ -27,8 +25,9 @@ export default function Sidebar() {
   const sidebarOpen  = useUiStore((s) => s.sidebarOpen);
   const logout       = useAuthStore((s) => s.logout);
 
-  const progress       = getProgressToNextLevel(totalXp);
-  const pendingQuests  = quests.filter((q) => !q.completedAt && q.dateKey === new Date().toISOString().slice(0, 10)).length;
+  const progress      = getProgressToNextLevel(totalXp);
+  const today         = new Date().toISOString().slice(0, 10);
+  const pendingQuests = quests.filter((q) => !q.completedAt && q.dateKey === today).length;
 
   return (
     <aside className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-bg-border bg-bg-soft transition-transform duration-200 lg:static lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
