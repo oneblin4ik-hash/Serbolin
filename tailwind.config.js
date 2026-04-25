@@ -21,8 +21,9 @@ export default {
         'accent-blue':    '#1E88E5',
       },
       fontFamily: {
-        display: ['"Playfair Display"', 'Georgia', 'serif'],
+        display: ['"Cormorant Garamond"', 'Georgia', 'serif'],
         sans:    ['Inter', 'system-ui', 'sans-serif'],
+        mono:    ['"JetBrains Mono"', 'monospace'],
       },
       boxShadow: {
         'glow-gold': '0 0 20px rgba(212,168,67,0.35)',
