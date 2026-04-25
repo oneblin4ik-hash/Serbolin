@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ShieldHalf, Wallet, Users, CalendarDays, Flag, Sparkles, Dumbbell, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShieldHalf, Wallet, Users, CalendarDays, Flag, Sparkles, Dumbbell, LogOut, BarChart2 } from 'lucide-react';
 import { useCharacterStore } from '../store/useCharacterStore';
 import { useQuestStore } from '../store/useQuestStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -16,6 +16,7 @@ const NAV = [
   { to: '/content',    label: 'Контент-план',   icon: CalendarDays },
   { to: '/crm',        label: 'Личная база',    icon: Users },
   { to: '/wallet',     label: 'Кошелёк',        icon: Wallet },
+  { to: '/analytics',  label: 'Аналитика',      icon: BarChart2 },
 ];
 
 export default function Sidebar() {

@@ -11,6 +11,7 @@ import ContentPage from './pages/ContentPage';
 import WorkoutsPage from './pages/WorkoutsPage';
 import CrmPage from './pages/CrmPage';
 import WalletPage from './pages/WalletPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 
 export default function App() {
   const { session, loading, init } = useAuthStore();
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/content"      element={<ContentPage />} />
         <Route path="/crm"          element={<CrmPage />} />
         <Route path="/wallet"       element={<WalletPage />} />
+        <Route path="/analytics"    element={<AnalyticsPage />} />
         <Route path="/tasks"        element={<Navigate to="/quests" replace />} />
         <Route path="/projects"     element={<Navigate to="/quests" replace />} />
         <Route path="/finance"      element={<Navigate to="/wallet" replace />} />
