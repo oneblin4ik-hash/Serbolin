@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  html { color-scheme: dark; }
+
+  body {
+    @apply bg-bg-base text-text-primary font-sans antialiased;
+    min-height: 100dvh;
+  }
+
+  h1, h2, h3 { @apply font-display; }
+}
+
+@layer components {
+  /* Cards */
+  .card {
+    @apply rounded-2xl border border-bg-border bg-bg-card;
+  }
+  .card-hover {
+    @apply card transition-all duration-200 hover:border-brand-gold/30 hover:bg-bg-hover;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-xl bg-brand-gold px-4 py-2.5 text-sm font-semibold text-bg-base
+           transition-all duration-150 hover:bg-brand-gold-soft active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 rounded-xl border border-bg-border bg-bg-hover px-4 py-2.5 text-sm font-semibold text-text-primary
+           transition-all duration-150 hover:border-brand-gold/40 hover:bg-bg-hover active:scale-95;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-text-secondary
+           transition-all duration-150 hover:bg-bg-hover hover:text-text-primary;
+  }
+
+  /* Inputs */
+  .input {
+    @apply w-full rounded-xl border border-bg-border bg-bg-soft px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted
+           outline-none transition focus:border-brand-gold/60 focus:ring-2 focus:ring-brand-gold/20;
+  }
+  .select {
+    @apply input appearance-none cursor-pointer;
+  }
+  .label {
+    @apply block text-xs font-semibold uppercase tracking-wider text-text-muted mb-1.5;
+  }
+
+  /* XP bar */
+  .xp-bar-track {
+    @apply h-2 overflow-hidden rounded-full bg-bg-border;
+  }
+  .xp-bar-fill {
+    @apply h-full rounded-full bg-gradient-to-r from-brand-gold-dim to-brand-gold transition-all duration-700;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide;
+  }
+  .badge-gold {
+    @apply badge bg-brand-gold/15 text-brand-gold;
+  }
+  .badge-green {
+    @apply badge bg-accent-green/15 text-accent-green;
+  }
+  .badge-red {
+    @apply badge bg-accent-red/15 text-accent-red;
+  }
+  .badge-blue {
+    @apply badge bg-accent-blue/15 text-accent-blue;
+  }
+
+  /* Nav link active */
+  .nav-active {
+    @apply bg-brand-gold/10 text-brand-gold shadow-[inset_0_0_0_1px_rgba(212,168,67,0.2)];
+  }
+}
