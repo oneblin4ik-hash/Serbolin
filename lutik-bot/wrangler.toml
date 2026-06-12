@@ -1,0 +1,13 @@
+name = "lutik-bot"
+main = "src/index.ts"
+compatibility_date = "2026-06-01"
+
+# Секреты (задаются через `wrangler secret put <NAME>`, НЕ сюда):
+#   TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET, ANTHROPIC_API_KEY, NOTION_TOKEN
+
+# Опционально (контекст диалога + вопрос «перенести/снять» после вечернего отчёта):
+# 1) wrangler kv namespace create LUTIK_CONTEXT
+# 2) раскомментировать и вставить id
+# [[kv_namespaces]]
+# binding = "LUTIK_CONTEXT"
+# id = "<id из команды выше>"
