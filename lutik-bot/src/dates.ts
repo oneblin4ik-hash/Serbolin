@@ -36,6 +36,36 @@ export function todayLabel(): string {
   return `${weekdayShort(d)}, ${dd}.${mm}`;
 }
 
+/** ISO-метка недели, напр. «2026-W25» */
+export function isoWeekLabel(d: Date = nowLocal()): string {
+  // ISO 8601: четверг определяет год/номер недели
+  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const day = t.getUTCDay() || 7; // Пн=1..Вс=7
+  t.setUTCDate(t.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((t.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+  return `${t.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+/** ISO «YYYY-MM-DD» N дней назад от сегодняшней локальной даты */
+export function daysAgoISO(n: number): string {
+  return toISODate(new Date(nowLocal().getTime() - n * 86_400_000));
+}
+
+/** Пн=1..Вс=7 для ISO-даты */
+export function isoWeekday(iso: string): number {
+  return new Date(`${iso}T00:00:00Z`).getUTCDay() || 7;
+}
+
+/** Запланирована ли привычка с такой `Частотой` в этот день (по умолчанию — да/ежедневно) */
+export function isPlannedDay(frequency: string | null, iso: string): boolean {
+  const wd = isoWeekday(iso); // 1..7
+  const f = (frequency ?? "").toLowerCase();
+  if (/буд/.test(f)) return wd >= 1 && wd <= 5; // По будням
+  if (/(3|трижд|недел)/.test(f) && !/ежеднев/.test(f)) return wd === 1 || wd === 3 || wd === 5; // 3×неделя: пн/ср/пт
+  return true; // Ежедневно и всё неопознанное
+}
+
 /** «12», «12:00», «19.30» → «12:00» / «19:30», иначе null */
 export function normTime(t?: string | null): string | null {
   if (!t) return null;

@@ -3,11 +3,19 @@ main = "src/index.ts"
 compatibility_date = "2026-06-01"
 
 # Секреты (задаются через `wrangler secret put <NAME>`, НЕ сюда):
-#   TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET, ANTHROPIC_API_KEY, NOTION_TOKEN
+#   TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET, AI_API_KEY, NOTION_TOKEN
+#   AI_API_KEY — ключ Google AI (Gemini): один на классификацию и распознавание голоса.
 
-# Опционально (контекст диалога + вопрос «перенести/снять» после вечернего отчёта):
-# 1) wrangler kv namespace create LUTIK_CONTEXT
-# 2) раскомментировать и вставить id
-# [[kv_namespaces]]
-# binding = "LUTIK_CONTEXT"
-# id = "<id из команды выше>"
+# Cron-триггеры (время UTC; владелец в UTC+5):
+#   0 2  * * *  → 07:00 Екб — утренний автобриф
+#   30 16 * * * → 21:30 Екб — напоминание об отчёте
+#   0 14 * * 0  → 19:00 вс — недельный обзор + опрос метрик
+#   0 *  * * *  → ежечасно — публикация отложенных постов
+[triggers]
+crons = ["0 2 * * *", "30 16 * * *", "0 14 * * 0", "0 * * * *"]
+
+# KV: контекст диалога, дедупликация апдейтов, флаги дня, отложенные посты.
+# Создать namespace: `wrangler kv namespace create LUTIK_CONTEXT` → вставить id ниже.
+[[kv_namespaces]]
+binding = "LUTIK_CONTEXT"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"

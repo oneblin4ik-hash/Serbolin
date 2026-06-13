@@ -1,8 +1,14 @@
 import type { Env } from "./config";
 import { todayISO, todayLabel } from "./dates";
 
-const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-6";
+// OpenAI-совместимый endpoint Gemini — для классификации и сопоставления.
+const OPENAI_COMPAT_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+// Нативный endpoint Gemini — только для распознавания аудио (inline_data).
+const NATIVE_URL = (model: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+const MODEL = "gemini-2.5-flash";
+const MODEL_FALLBACK = "gemini-2.5-flash-lite";
 
 const PERSONA = `Ты — Енот Лютик 🦝, личный ассистент Эдуарда Серболина (фитнес-тренер, Екатеринбург, UTC+5).
 Характер: дружелюбный, краткий, дисциплинированный. Без воды. Иногда лёгкий юмор. Девиз: «Терпение + Дисциплина = Результат».
@@ -11,9 +17,12 @@ const PERSONA = `Ты — Енот Лютик 🦝, личный ассисте�
 
 const CLASSIFY_RULES = `Твоя работа: классифицировать сообщение Эдуарда, извлечь структуру и вернуть СТРОГО один JSON-объект без пояснений и без markdown:
 {
-  "intent": "morning_plan" | "add_task" | "add_lead" | "evening_report" | "question" | "note",
+  "intent": "morning_plan" | "add_task" | "add_lead" | "evening_report" | "weekly_metrics" | "post_to_channel" | "content_idea" | "question" | "note",
   "tasks": [{"title": "...", "sphere": "работа|контент|финансы|здоровье|семья|обучение", "priority": "Высокий|Средний|Низкий", "time": "HH:MM"}],
   "lead": {"name": "...", "source": "Instagram|Telegram|YouTube|ВКонтакте|Рекомендация|Другое", "interest": "Ведение 25к|Программа|План питания|Не определён", "comment": "...", "consult_date": "YYYY-MM-DD"},
+  "metrics": {"leads": 0, "reels": 0, "ig": 0, "tg": 0, "clients": 0, "comment": "..."},
+  "post": {"text": "...", "when": "YYYY-MM-DDTHH:MM"},
+  "idea": {"title": "...", "text": "..."},
   "reply": "твой короткий ответ Эдуарду"
 }
 
@@ -22,8 +31,11 @@ const CLASSIFY_RULES = `Твоя работа: классифицировать 
 - add_task: одна или несколько задач, добавленных в течение дня («добавь…», «надо…», «не забыть…») → tasks.
 - add_lead: заявка от потенциального клиента (имя, откуда пришёл, что хочет) → lead. consult_date вычисли от сегодняшней даты, если назван день созвона.
 - evening_report: отчёт о сделанном за день («сделал то-то…»).
+- weekly_metrics: ответ на воскресный опрос метрик («заявок 3, роликов 5, IG 8600, TG 410») → metrics. leads=заявки, reels=ролики/рилсы, ig=подписчики Instagram, tg=подписчики Telegram, clients=новые клиенты. Бери только названные числа, остальные опускай.
+- post_to_channel: «запости в канал …» → post.text = текст поста. Если назван срок («завтра в 10», «сегодня в 18:30») → post.when в формате YYYY-MM-DDTHH:MM (местное время Екатеринбурга), иначе when опусти (постим сразу после подтверждения).
+- content_idea: «идея для рилса/поста/контента: …» → idea.title (короткий заголовок) и idea.text (полный текст идеи).
 - question: вопрос о планах, задачах, системе.
-- note: всё остальное, что стоит сохранить (мысль, идея, ссылка).
+- note: всё остальное, что стоит сохранить (мысль, заметка, ссылка).
 - Поля, не относящиеся к intent, опускай или ставь null / [].
 - reply: коротко, по делу, поддерживающе. Не перечисляй в reply задачи — сводку бот добавит сам.`;
 
@@ -44,6 +56,16 @@ export interface BrainResult {
     comment?: string | null;
     consult_date?: string | null;
   } | null;
+  metrics?: {
+    leads?: number | null;
+    reels?: number | null;
+    ig?: number | null;
+    tg?: number | null;
+    clients?: number | null;
+    comment?: string | null;
+  } | null;
+  post?: { text?: string | null; when?: string | null } | null;
+  idea?: { title?: string | null; text?: string | null } | null;
   reply?: string | null;
 }
 
@@ -67,37 +89,47 @@ export function extractJSON<T>(raw: string): T | null {
   }
 }
 
-async function callClaude(env: Env, system: string, user: string): Promise<string> {
-  const res = await fetch(ANTHROPIC_API, {
-    method: "POST",
-    headers: {
-      "x-api-key": env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 1024,
-      system,
-      messages: [{ role: "user", content: user }],
-    }),
-  });
-  if (!res.ok) {
-    throw new Error(`Anthropic → ${res.status}: ${(await res.text()).slice(0, 300)}`);
+/** Gemini через OpenAI-совместимый endpoint: основная модель + фолбэк на flash-lite */
+async function callLLM(env: Env, system: string, user: string): Promise<string> {
+  let lastErr: unknown;
+  for (const model of [MODEL, MODEL_FALLBACK]) {
+    try {
+      const res = await fetch(OPENAI_COMPAT_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${env.AI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 1024,
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: user },
+          ],
+        }),
+      });
+      if (!res.ok) {
+        lastErr = new Error(`Gemini(${model}) → ${res.status}: ${(await res.text()).slice(0, 200)}`);
+        continue;
+      }
+      const data: any = await res.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (typeof content === "string" && content.trim()) return content;
+      lastErr = new Error(`Gemini(${model}) пустой ответ`);
+    } catch (e) {
+      lastErr = e;
+    }
   }
-  const data: any = await res.json();
-  return (data.content ?? [])
-    .filter((b: any) => b.type === "text")
-    .map((b: any) => b.text)
-    .join("");
+  throw lastErr instanceof Error ? lastErr : new Error("Gemini недоступен");
 }
 
 export async function classify(env: Env, text: string, dialogContext?: string): Promise<BrainResult | null> {
   let system = `${PERSONA}\n\nСегодня: ${todayLabel()}, ${todayISO()}.\n\n${CLASSIFY_RULES}`;
   if (dialogContext) {
-    system += `\n\nПоследние сообщения диалога (для связности):\n${dialogContext}`;
+    system += `\n\nПоследние сообщения диалога (для связности «перенеси», «да, второе» и т.п.):\n${dialogContext}`;
   }
-  return extractJSON<BrainResult>(await callClaude(env, system, text));
+  return extractJSON<BrainResult>(await callLLM(env, system, text));
 }
 
 /** Второй вызов для вечернего отчёта: сопоставить отчёт с реальными задачами и привычками */
@@ -121,5 +153,54 @@ ${taskTitles.map((t) => `- ${t}`).join("\n") || "(нет)"}
 
 Активные привычки:
 ${habitTitles.map((t) => `- ${t}`).join("\n") || "(нет)"}`;
-  return extractJSON<ReportMatch>(await callClaude(env, system, report));
+  return extractJSON<ReportMatch>(await callLLM(env, system, report));
+}
+
+/** Распознавание голосового через нативный Gemini endpoint (аудио понимается без отдельного STT) */
+export async function transcribeAudio(env: Env, audio: ArrayBuffer, mimeType = "audio/ogg"): Promise<string> {
+  const body = {
+    contents: [
+      {
+        parts: [
+          { inline_data: { mime_type: mimeType, data: bufferToBase64(audio) } },
+          { text: "Расшифруй аудио дословно на русском. Верни только текст." },
+        ],
+      },
+    ],
+  };
+  let lastErr: unknown;
+  for (const model of [MODEL, MODEL_FALLBACK]) {
+    try {
+      const res = await fetch(`${NATIVE_URL(model)}?key=${env.AI_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        lastErr = new Error(`Gemini audio(${model}) → ${res.status}: ${(await res.text()).slice(0, 200)}`);
+        continue;
+      }
+      const data: any = await res.json();
+      const text = (data.candidates?.[0]?.content?.parts ?? [])
+        .map((p: any) => p.text ?? "")
+        .join("")
+        .trim();
+      if (text) return text;
+      lastErr = new Error(`Gemini audio(${model}) пустая расшифровка`);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("Распознавание аудио недоступно");
+}
+
+/** ArrayBuffer → base64 чанками (без переполнения стека на крупных файлах) */
+function bufferToBase64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
 }

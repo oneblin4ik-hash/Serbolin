@@ -1,9 +1,10 @@
 export interface Env {
   TELEGRAM_BOT_TOKEN: string;
   TELEGRAM_WEBHOOK_SECRET: string;
-  ANTHROPIC_API_KEY: string;
+  /** Ключ Google AI (Gemini): один на классификацию (OpenAI-совместимый endpoint) и на распознавание аудио (нативный endpoint) */
+  AI_API_KEY: string;
   NOTION_TOKEN: string;
-  /** Опциональный KV: контекст диалога + ожидание ответа «перенести/снять» */
+  /** KV: контекст диалога, дедуп апдейтов, флаги дня, отложенные посты (v2 — обязателен) */
   LUTIK_CONTEXT?: KVNamespace;
 }
 
@@ -21,6 +22,10 @@ export const DB = {
   knowledge: "84d7d59d-b401-4a9d-b0c8-03b81e718c22",
   spheres: "3f38f104-a501-4240-8fd0-76c318e9cbfb",
 } as const;
+
+// База «Метрики недели». Владелец создаёт её заранее и расшаривает интеграции.
+// TODO: заполнить после создания базы (Notion → Share → скопировать ID из URL).
+export const METRICS_DB = "";
 
 export const SPHERES: Record<string, string> = {
   "работа": "37a481b9-598e-8165-ba5a-c135db540e4d", // Работа / клиенты / тренерство
